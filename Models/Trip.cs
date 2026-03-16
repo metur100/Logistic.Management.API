@@ -27,5 +27,4 @@ public class Trip
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public ICollection<Cargo> CargoItems { get; set; } = new List<Cargo>();
     public ICollection<TripStatusHistory> StatusHistory { get; set; } = new List<TripStatusHistory>();
-    public ICollection<FuelRequest> FuelRequests { get; set; } = new List<FuelRequest>();
 }

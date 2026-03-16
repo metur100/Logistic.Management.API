@@ -9,7 +9,6 @@ public class AppDbContext : DbContext
     public DbSet<Cargo> Cargoes => Set<Cargo>();
     public DbSet<Trip> Trips => Set<Trip>();
     public DbSet<TripStatusHistory> TripStatusHistories => Set<TripStatusHistory>();
-    public DbSet<FuelRequest> FuelRequests => Set<FuelRequest>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {

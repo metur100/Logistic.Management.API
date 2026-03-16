@@ -27,7 +27,7 @@ public class TripsController : ControllerBase
     public async Task<IActionResult> Get(int id)
     {
         var trip = await _db.Trips.Include(t => t.Driver).Include(t => t.Vehicle)
-            .Include(t => t.CargoItems).Include(t => t.StatusHistory).Include(t => t.FuelRequests)
+            .Include(t => t.CargoItems).Include(t => t.StatusHistory)
             .FirstOrDefaultAsync(t => t.Id == id);
         if (trip == null) return NotFound();
         if (User.IsInRole("Driver") && trip.DriverId != CurrentUserId) return Forbid();
