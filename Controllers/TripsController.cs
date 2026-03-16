@@ -6,7 +6,10 @@ using LogisticsAPI.Data;
 using LogisticsAPI.DTOs;
 using LogisticsAPI.Models;
 namespace LogisticsAPI.Controllers;
-[ApiController][Route("api/[controller]")][Authorize]
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
 public class TripsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -200,6 +203,21 @@ public class TripsController : ControllerBase
             ChangedByUserId = CurrentUserId
         });
 
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpPatch("{id}/cmr")]
+    public async Task<IActionResult> UpdateCmr(int id, [FromBody] UpdateCmrDto dto)
+    {
+        var trip = await _db.Trips.FindAsync(id);
+        if (trip == null) return NotFound();
+
+        if (User.IsInRole("Driver") && trip.DriverId != CurrentUserId)
+            return Forbid();
+
+        trip.CmrNumber = dto.CmrNumber;
+        trip.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return NoContent();
     }

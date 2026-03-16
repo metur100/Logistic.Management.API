@@ -8,3 +8,4 @@ public record CreateCargoDto(string Description, string? Consignor, string? Cons
 public record CreateTripDto(int? DriverId, int? VehicleId, string OriginLocation, string DestinationLocation, decimal? DistanceKm, DateTime? PlannedDepartureDate, DateTime? ExpectedArrivalDate, string? Remarks, List<int>? CargoIds);
 public record UpdateTripStatusDto(string Status, string? Remarks, DateTime? LoadingArrivalTime, DateTime? LoadingEndTime, DateTime? UnloadingArrivalTime, DateTime? UnloadingEndTime);
 public record PodReceiveDto(string? PodNumber, string? Remarks, DateTime? LoadingArrivalTime, DateTime? LoadingEndTime, DateTime? UnloadingArrivalTime, DateTime? UnloadingEndTime);
+public record UpdateCmrDto(string? CmrNumber);

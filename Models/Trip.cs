@@ -25,6 +25,7 @@ public class Trip
     public bool PodReceived { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public string? CmrNumber { get; set; }
     public ICollection<Cargo> CargoItems { get; set; } = new List<Cargo>();
     public ICollection<TripStatusHistory> StatusHistory { get; set; } = new List<TripStatusHistory>();
 }
