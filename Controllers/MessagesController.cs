@@ -18,9 +18,11 @@ public class MessagesController : ControllerBase
     private int CurrentUserId =>
         int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-    // GET /api/messages — driver gets own thread; manager gets by driverId
+    // GET /api/messages
+    // Driver: ?adminId=X  → their thread with that admin
+    // Admin:  ?driverId=X → their thread with that driver
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] int? driverId)
+    public async Task<IActionResult> GetAll([FromQuery] int? driverId, [FromQuery] int? adminId)
     {
         IQueryable<Message> q = _db.Messages
             .Include(m => m.Sender)
@@ -28,11 +30,17 @@ public class MessagesController : ControllerBase
 
         if (User.IsInRole("Driver"))
         {
-            q = q.Where(m => m.DriverId == CurrentUserId);
+            if (adminId == null)
+                return BadRequest(new { message = "adminId required" });
+
+            q = q.Where(m => m.DriverId == CurrentUserId && m.AdminId == adminId.Value);
         }
-        else if (driverId.HasValue)
+        else // Admin / Manager
         {
-            q = q.Where(m => m.DriverId == driverId.Value);
+            if (driverId == null)
+                return BadRequest(new { message = "driverId required" });
+
+            q = q.Where(m => m.AdminId == CurrentUserId && m.DriverId == driverId.Value);
         }
 
         var msgs = await q.Select(m => new {
@@ -48,37 +56,79 @@ public class MessagesController : ControllerBase
     }
 
     // GET /api/messages/unread-count
+    // Driver: counts unread from any admin
+    // Admin:  counts unread from any driver (only in their own threads)
     [HttpGet("unread-count")]
-    public async Task<IActionResult> UnreadCount([FromQuery] string? role)
+    public async Task<IActionResult> UnreadCount()
     {
         int count;
         if (User.IsInRole("Driver"))
         {
-            // Count messages sent TO this driver (not from driver, not read)
             count = await _db.Messages
                 .Where(m => m.DriverId == CurrentUserId && !m.IsFromDriver && !m.IsRead)
                 .CountAsync();
         }
         else
         {
-            // Count messages from drivers not yet read by management
             count = await _db.Messages
-                .Where(m => m.IsFromDriver && !m.IsRead)
+                .Where(m => m.AdminId == CurrentUserId && m.IsFromDriver && !m.IsRead)
                 .CountAsync();
         }
         return Ok(new { count });
     }
 
+    // GET /api/messages/my-threads
+    // Driver: returns list of admins they have threads with (or all admins)
+    // Admin:  returns list of drivers they have threads with
+    [HttpGet("my-threads")]
+    public async Task<IActionResult> MyThreads()
+    {
+        if (User.IsInRole("Driver"))
+        {
+            // Return all admins available to chat with
+            var admins = await _db.Users
+                .Where(u => u.Role == "Admin" || u.Role == "Manager")
+                .Select(u => new { u.Id, u.FullName, u.Role })
+                .ToListAsync();
+            return Ok(admins);
+        }
+        else
+        {
+            // Return drivers who have exchanged messages with this admin
+            // + all drivers (so admin can initiate)
+            var drivers = await _db.Users
+                .Where(u => u.Role == "Driver")
+                .Select(u => new {
+                    u.Id,
+                    u.FullName,
+                    UnreadCount = _db.Messages
+                        .Count(m => m.AdminId == CurrentUserId
+                                 && m.DriverId == u.Id
+                                 && m.IsFromDriver
+                                 && !m.IsRead)
+                })
+                .ToListAsync();
+            return Ok(drivers);
+        }
+    }
+
     // POST /api/messages
+    // Driver sends: { content, toAdminId }
+    // Admin sends:  { content, toDriverId }
     [HttpPost]
     public async Task<IActionResult> Send([FromBody] SendMessageDto dto)
     {
         Message msg;
+
         if (User.IsInRole("Driver"))
         {
+            if (dto.ToAdminId == null)
+                return BadRequest(new { message = "toAdminId required" });
+
             msg = new Message
             {
                 DriverId = CurrentUserId,
+                AdminId = dto.ToAdminId.Value,
                 SenderId = CurrentUserId,
                 Content = dto.Content,
                 IsFromDriver = true
@@ -92,6 +142,7 @@ public class MessagesController : ControllerBase
             msg = new Message
             {
                 DriverId = dto.ToDriverId.Value,
+                AdminId = CurrentUserId,
                 SenderId = CurrentUserId,
                 Content = dto.Content,
                 IsFromDriver = false
@@ -104,18 +155,28 @@ public class MessagesController : ControllerBase
     }
 
     // POST /api/messages/mark-read
+    // Driver: ?adminId=X  → marks messages from that admin as read
+    // Admin:  ?driverId=X → marks messages from that driver as read
     [HttpPost("mark-read")]
-    public async Task<IActionResult> MarkRead([FromQuery] int? driverId)
+    public async Task<IActionResult> MarkRead([FromQuery] int? driverId, [FromQuery] int? adminId)
     {
         IQueryable<Message> q = _db.Messages;
 
         if (User.IsInRole("Driver"))
         {
-            q = q.Where(m => m.DriverId == CurrentUserId && !m.IsFromDriver && !m.IsRead);
+            if (adminId == null) return BadRequest();
+            q = q.Where(m => m.DriverId == CurrentUserId
+                           && m.AdminId == adminId.Value
+                           && !m.IsFromDriver
+                           && !m.IsRead);
         }
-        else if (driverId.HasValue)
+        else
         {
-            q = q.Where(m => m.DriverId == driverId.Value && m.IsFromDriver && !m.IsRead);
+            if (driverId == null) return BadRequest();
+            q = q.Where(m => m.AdminId == CurrentUserId
+                           && m.DriverId == driverId.Value
+                           && m.IsFromDriver
+                           && !m.IsRead);
         }
 
         await q.ExecuteUpdateAsync(s => s.SetProperty(m => m.IsRead, true));
@@ -123,4 +184,4 @@ public class MessagesController : ControllerBase
     }
 }
 
-public record SendMessageDto(string Content, int? ToDriverId);
+public record SendMessageDto(string Content, int? ToDriverId, int? ToAdminId);
