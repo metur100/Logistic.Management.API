@@ -3,28 +3,44 @@
   "WorkspaceRootPath": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|c:\\users\\turkesmedin\\repos\\medin\\logisticssystem\\logisticsapi\\controllers\\fuelrequestscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|solutionrelative:controllers\\fuelrequestscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|c:\\users\\turkesmedin\\repos\\medin\\logisticssystem\\logisticsapi\\controllers\\messagescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|solutionrelative:controllers\\messagescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|c:\\users\\turkesmedin\\repos\\medin\\logisticssystem\\logisticsapi\\models\\message.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|solutionrelative:models\\message.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|c:\\users\\turkesmedin\\repos\\medin\\logisticssystem\\logisticsapi\\controllers\\incidentscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|solutionrelative:controllers\\incidentscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|c:\\users\\turkesmedin\\repos\\medin\\logisticssystem\\logisticsapi\\controllers\\tripscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|solutionrelative:controllers\\tripscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|c:\\users\\turkesmedin\\repos\\medin\\logisticssystem\\logisticsapi\\models\\cargo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|solutionrelative:models\\cargo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|c:\\users\\turkesmedin\\repos\\medin\\logisticssystem\\logisticsapi\\dtos\\dtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|solutionrelative:dtos\\dtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|c:\\users\\turkesmedin\\repos\\medin\\logisticssystem\\logisticsapi\\models\\trip.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|solutionrelative:models\\trip.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|c:\\users\\turkesmedin\\repos\\medin\\logisticssystem\\logisticsapi\\models\\vehicle.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|solutionrelative:models\\vehicle.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|c:\\users\\turkesmedin\\repos\\medin\\logisticssystem\\logisticsapi\\controllers\\vehiclescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|solutionrelative:controllers\\vehiclescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|c:\\users\\turkesmedin\\repos\\medin\\logisticssystem\\logisticsapi\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|c:\\users\\turkesmedin\\repos\\medin\\logisticssystem\\logisticsapi\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|c:\\users\\turkesmedin\\repos\\medin\\logisticssystem\\logisticsapi\\dtos\\dtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|solutionrelative:dtos\\dtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|c:\\users\\turkesmedin\\repos\\medin\\logisticssystem\\logisticsapi\\models\\incident.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5AEF0F63-216F-9826-3EEF-26864A27BE54}|LogisticsAPI.csproj|solutionrelative:models\\incident.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -34,80 +50,136 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "FuelRequestsController.cs",
-              "DocumentMoniker": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Controllers\\FuelRequestsController.cs",
-              "RelativeDocumentMoniker": "Controllers\\FuelRequestsController.cs",
-              "ToolTip": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Controllers\\FuelRequestsController.cs",
-              "RelativeToolTip": "Controllers\\FuelRequestsController.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAAYAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-25T12:32:09.06Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "Dtos.cs",
-              "DocumentMoniker": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\DTOs\\Dtos.cs",
-              "RelativeDocumentMoniker": "DTOs\\Dtos.cs",
-              "ToolTip": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\DTOs\\Dtos.cs",
-              "RelativeToolTip": "DTOs\\Dtos.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-25T12:15:47.915Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "Cargo.cs",
-              "DocumentMoniker": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Models\\Cargo.cs",
-              "RelativeDocumentMoniker": "Models\\Cargo.cs",
-              "ToolTip": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Models\\Cargo.cs",
-              "RelativeToolTip": "Models\\Cargo.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAgAAAApAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-25T12:15:31.798Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "TripsController.cs",
               "DocumentMoniker": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Controllers\\TripsController.cs",
               "RelativeDocumentMoniker": "Controllers\\TripsController.cs",
               "ToolTip": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Controllers\\TripsController.cs",
               "RelativeToolTip": "Controllers\\TripsController.cs",
-              "ViewState": "AgIAAG4AAAAAAAAAAAArwIEAAAAdAAAAAAAAAA==",
+              "ViewState": "AgIAAIYAAAAAAAAAAAAhwJgAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-25T12:13:42.487Z"
+              "WhenOpened": "2026-03-17T07:08:31.401Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 6,
+              "Title": "Vehicle.cs",
+              "DocumentMoniker": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Models\\Vehicle.cs",
+              "RelativeDocumentMoniker": "Models\\Vehicle.cs",
+              "ToolTip": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Models\\Vehicle.cs",
+              "RelativeToolTip": "Models\\Vehicle.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAuAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-17T06:57:04.936Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "VehiclesController.cs",
+              "DocumentMoniker": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Controllers\\VehiclesController.cs",
+              "RelativeDocumentMoniker": "Controllers\\VehiclesController.cs",
+              "ToolTip": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Controllers\\VehiclesController.cs",
+              "RelativeToolTip": "Controllers\\VehiclesController.cs",
+              "ViewState": "AgIAABAAAAAAAAAAAAAiwDQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-17T06:56:39.104Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MessagesController.cs",
+              "DocumentMoniker": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Controllers\\MessagesController.cs",
+              "RelativeDocumentMoniker": "Controllers\\MessagesController.cs",
+              "ToolTip": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Controllers\\MessagesController.cs",
+              "RelativeToolTip": "Controllers\\MessagesController.cs",
+              "ViewState": "AgIAAKsAAAAAAAAAAAAswLsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T11:06:45.541Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Message.cs",
+              "DocumentMoniker": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Models\\Message.cs",
+              "RelativeDocumentMoniker": "Models\\Message.cs",
+              "ToolTip": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Models\\Message.cs",
+              "RelativeToolTip": "Models\\Message.cs",
+              "ViewState": "AgIAAAgAAAAAAAAAAAAwwBYAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T11:04:07.158Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "IncidentsController.cs",
+              "DocumentMoniker": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Controllers\\IncidentsController.cs",
+              "RelativeDocumentMoniker": "Controllers\\IncidentsController.cs",
+              "ToolTip": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Controllers\\IncidentsController.cs",
+              "RelativeToolTip": "Controllers\\IncidentsController.cs",
+              "ViewState": "AgIAAEAAAAAAAAAAAAAmwEkAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-17T10:55:28.505Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Dtos.cs",
+              "DocumentMoniker": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\DTOs\\Dtos.cs",
+              "RelativeDocumentMoniker": "DTOs\\Dtos.cs",
+              "ToolTip": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\DTOs\\Dtos.cs",
+              "RelativeToolTip": "DTOs\\Dtos.cs",
+              "ViewState": "AgIAAAIAAAAAAAAAAAAxwAsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-17T07:23:23.392Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Trip.cs",
+              "DocumentMoniker": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Models\\Trip.cs",
+              "RelativeDocumentMoniker": "Models\\Trip.cs",
+              "ToolTip": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Models\\Trip.cs",
+              "RelativeToolTip": "Models\\Trip.cs",
+              "ViewState": "AgIAAAsAAAAAAAAAAAAuwBYAAAAoAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-17T07:23:52.251Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
               "Title": "appsettings.json",
               "DocumentMoniker": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\appsettings.json",
               "RelativeDocumentMoniker": "appsettings.json",
               "ToolTip": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\appsettings.json",
               "RelativeToolTip": "appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAADEAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-02-25T10:43:53.355Z"
+              "WhenOpened": "2026-03-16T21:02:11.553Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Program.cs",
-              "RelativeDocumentMoniker": "Program.cs",
-              "ToolTip": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Program.cs",
-              "RelativeToolTip": "Program.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABoAAAAhAAAAAAAAAA==",
+              "DocumentIndex": 9,
+              "Title": "Incident.cs",
+              "DocumentMoniker": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Models\\Incident.cs",
+              "RelativeDocumentMoniker": "Models\\Incident.cs",
+              "ToolTip": "C:\\Users\\TurkesMedin\\repos\\Medin\\LogisticsSystem\\LogisticsAPI\\Models\\Incident.cs",
+              "RelativeToolTip": "Models\\Incident.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-25T10:41:43.73Z"
+              "WhenOpened": "2026-03-16T11:04:31.417Z"
             }
           ]
         }
