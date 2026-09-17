@@ -26,15 +26,15 @@ jobs:
       - name: Restore
         run: dotnet restore LogisticsAPI.csproj
 
-      - name: Build
-        run: dotnet build LogisticsAPI.csproj -c Release --no-restore
-
+      # DeployOnBuild hooks into the "Build" target, not "Publish" — running
+      # it through `dotnet publish` causes a circular MSBuild target
+      # dependency (Publish <- ... <- Publish). Must use `dotnet build`.
       # Uses the existing Properties/PublishProfiles/site56643-WebDeploy.pubxml.
       # Only the deploy password is a secret; the Web Deploy username
       # (site56643) is already stored in the checked-in .pubxml file.
-      - name: Publish via Web Deploy
+      - name: Build & deploy via Web Deploy
         run: >
-          dotnet publish LogisticsAPI.csproj -c Release
+          dotnet build LogisticsAPI.csproj -c Release --no-restore
           /p:DeployOnBuild=true
           /p:PublishProfile=site56643-WebDeploy
           /p:Password=${{ secrets.MONSTERASP_PASSWORD }}
