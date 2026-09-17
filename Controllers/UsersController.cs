@@ -61,4 +61,37 @@ public class UsersController : ControllerBase
         await _db.SaveChangesAsync();
         return NoContent();
     }
+
+    [HttpPatch("{id}/block")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Block(int id)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user == null) return NotFound();
+        user.IsActive = false;
+        await _db.SaveChangesAsync();
+        return Ok(new { user.Id, user.FullName, user.Username, user.Role, user.IsActive });
+    }
+
+    [HttpPatch("{id}/unblock")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Unblock(int id)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user == null) return NotFound();
+        user.IsActive = true;
+        await _db.SaveChangesAsync();
+        return Ok(new { user.Id, user.FullName, user.Username, user.Role, user.IsActive });
+    }
+
+    [HttpPost("{id}/reset-password")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ResetPassword(int id, ResetPasswordDto dto)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user == null) return NotFound();
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Password reset successfully" });
+    }
 }

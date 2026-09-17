@@ -1,0 +1,38 @@
+name: Deploy to MonsterASP.NET
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    # Web Deploy (MSDeploy/WMSVC) requires the Windows-only Web Deploy tooling
+    # that ships with the windows-latest runner's Visual Studio installation.
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore LogisticsAPI.csproj
+
+      - name: Build
+        run: dotnet build LogisticsAPI.csproj -c Release --no-restore
+
+      # Uses the existing Properties/PublishProfiles/site56643-WebDeploy.pubxml.
+      # Only the deploy password is a secret; the Web Deploy username
+      # (site56643) is already stored in the checked-in .pubxml file.
+      - name: Publish via Web Deploy
+        run: >
+          dotnet publish LogisticsAPI.csproj -c Release
+          /p:DeployOnBuild=true
+          /p:PublishProfile=site56643-WebDeploy
+          /p:Password=${{ secrets.MONSTERASP_PASSWORD }}
+          /p:AllowUntrustedCertificate=true

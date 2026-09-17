@@ -315,6 +315,54 @@ public class TripsController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("calendar")]
+    public async Task<IActionResult> Calendar([FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] string resource = "vehicle")
+    {
+        var rangeFrom = from ?? DateTime.UtcNow.Date;
+        var rangeTo = to ?? DateTime.UtcNow.Date.AddDays(14);
+
+        var q = _db.Trips
+            .Include(t => t.Driver)
+            .Include(t => t.Vehicle)
+            .AsQueryable();
+
+        if (User.IsInRole("Driver")) q = q.Where(t => t.DriverId == CurrentUserId);
+
+        q = q.Where(t =>
+            (t.PlannedDepartureDate ?? t.CreatedAt) <= rangeTo &&
+            (t.ExpectedArrivalDate ?? t.PlannedDepartureDate ?? t.CreatedAt) >= rangeFrom);
+
+        var trips = await q.ToListAsync();
+
+        var result = resource == "driver"
+            ? trips.Where(t => t.DriverId.HasValue).Select(t => new
+            {
+                resourceId = t.DriverId,
+                resourceLabel = t.Driver != null ? t.Driver.FullName : null,
+                tripId = t.Id,
+                tripNumber = t.TripNumber,
+                start = t.PlannedDepartureDate ?? t.CreatedAt,
+                end = t.ExpectedArrivalDate ?? t.PlannedDepartureDate ?? t.CreatedAt,
+                originLocation = t.OriginLocation,
+                destinationLocation = t.DestinationLocation,
+                status = t.Status
+            })
+            : trips.Where(t => t.VehicleId.HasValue).Select(t => new
+            {
+                resourceId = t.VehicleId,
+                resourceLabel = t.Vehicle != null ? t.Vehicle.RegistrationNumber : null,
+                tripId = t.Id,
+                tripNumber = t.TripNumber,
+                start = t.PlannedDepartureDate ?? t.CreatedAt,
+                end = t.ExpectedArrivalDate ?? t.PlannedDepartureDate ?? t.CreatedAt,
+                originLocation = t.OriginLocation,
+                destinationLocation = t.DestinationLocation,
+                status = t.Status
+            });
+
+        return Ok(result);
+    }
+
     [HttpPatch("{id}/cmr")]
     public async Task<IActionResult> UpdateCmr(int id, [FromBody] UpdateCmrDto dto)
     {

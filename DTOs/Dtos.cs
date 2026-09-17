@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 namespace LogisticsAPI.DTOs;
 public record LoginRequest(string Username, string Password);
 public record LoginResponse(string Token, string Role, int UserId, string FullName);
@@ -9,3 +10,12 @@ public record CreateTripDto(int? DriverId, int? VehicleId, string OriginLocation
 public record UpdateTripStatusDto(string Status, string? Remarks, DateTime? LoadingArrivalTime, DateTime? LoadingEndTime, DateTime? UnloadingArrivalTime, DateTime? UnloadingEndTime);
 public record PodReceiveDto(string? PodNumber, string? Remarks, DateTime? LoadingArrivalTime, DateTime? LoadingEndTime, DateTime? UnloadingArrivalTime, DateTime? UnloadingEndTime);
 public record UpdateCmrDto(string? CmrNumber);
+public record ResetPasswordDto([Required, MinLength(6)] string NewPassword);
+public record CreateSupportTicketDto([Required, MaxLength(200)] string Subject, [Required, MaxLength(2000)] string Description, string? Priority);
+public record UpdateSupportTicketDto(string Status, string? Priority, int? AssignedToUserId, string? Resolution);
+public record SupportTicketDto(
+    int Id, string Subject, string Description, string Status, string Priority,
+    int CreatedByUserId, string? CreatedByName,
+    int? AssignedToUserId, string? AssignedToName,
+    string? Resolution, DateTime CreatedAt, DateTime UpdatedAt, DateTime? ResolvedAt
+);

@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<TripStatusHistory> TripStatusHistories => Set<TripStatusHistory>();
     public DbSet<Message> Messages { get; set; }
     public DbSet<Incident> Incidents { get; set; }
+    public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -38,6 +39,18 @@ public class AppDbContext : DbContext
             .HasOne(i => i.Reporter)
             .WithMany()
             .HasForeignKey(i => i.ReportedByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        mb.Entity<SupportTicket>()
+            .HasOne(t => t.CreatedBy)
+            .WithMany()
+            .HasForeignKey(t => t.CreatedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<SupportTicket>()
+            .HasOne(t => t.AssignedTo)
+            .WithMany()
+            .HasForeignKey(t => t.AssignedToUserId)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }
