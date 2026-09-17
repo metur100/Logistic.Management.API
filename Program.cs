@@ -42,7 +42,17 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    try
+    {
+        db.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        // Don't take the whole API down if a migration can't apply (e.g. the
+        // schema was already brought up to date manually via db-scripts/).
+        // Log it loudly so a real migration problem is still visible.
+        app.Logger.LogError(ex, "Database migration failed on startup");
+    }
 }
 app.UseSwagger(); app.UseSwaggerUI();
 app.UseCors(); app.UseAuthentication(); app.UseAuthorization();
