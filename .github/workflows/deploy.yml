@@ -10,6 +10,9 @@ jobs:
     # Web Deploy (MSDeploy/WMSVC) requires the Windows-only Web Deploy tooling
     # that ships with the windows-latest runner's Visual Studio installation.
     runs-on: windows-latest
+    # MONSTERASP_PASSWORD is stored as an Environment secret under "API",
+    # not a repo secret, so the job must declare that environment to see it.
+    environment: API
 
     steps:
       - name: Checkout
