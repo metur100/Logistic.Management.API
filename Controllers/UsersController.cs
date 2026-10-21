@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LogisticsAPI.Data;
 using LogisticsAPI.DTOs;
-using LogisticsAPI.Models;
+
 namespace LogisticsAPI.Controllers;
-[ApiController][Route("api/[controller]")]
-[Authorize(Roles = "Admin,Manager")]
-public class UsersController : ControllerBase
+
+[Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
+public class UsersController : ApiControllerBase
 {
     private readonly AppDbContext _db;
     public UsersController(AppDbContext db) => _db = db;
@@ -15,83 +16,89 @@ public class UsersController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? role)
     {
-        var q = _db.Users.AsQueryable();
+        var q = _db.Users.Include(u => u.Company).AsQueryable();
         if (!string.IsNullOrEmpty(role)) q = q.Where(u => u.Role == role);
-        return Ok(await q.Select(u => new { u.Id, u.FullName, u.Username, u.Role, u.Phone, u.LicenseNumber, u.IsActive, u.CreatedAt }).ToListAsync());
+
+        var list = await q.OrderBy(u => u.FullName)
+            .Select(u => new
+            {
+                u.Id, u.FullName, u.Username, u.Email, u.Role, u.Phone,
+                u.LicenseNumber, u.IsActive, u.CreatedAt, u.LastLoginAt,
+                u.CompanyId,
+                companyName = u.Company != null ? u.Company.Name : null,
+                invitePending = u.InviteToken != null
+            })
+            .ToListAsync();
+        return Ok(list);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> Get(int id)
     {
-        var u = await _db.Users.FindAsync(id);
+        var u = await _db.Users.Include(x => x.Company).FirstOrDefaultAsync(x => x.Id == id);
         if (u == null) return NotFound();
-        return Ok(new { u.Id, u.FullName, u.Username, u.Role, u.Phone, u.LicenseNumber, u.IsActive });
+        return Ok(new
+        {
+            u.Id, u.FullName, u.Username, u.Email, u.Role, u.Phone, u.LicenseNumber,
+            u.IsActive, u.CreatedAt, u.LastLoginAt, u.CompanyId,
+            companyName = u.Company?.Name
+        });
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Create(CreateUserDto dto)
-    {
-        if (await _db.Users.AnyAsync(u => u.Username == dto.Username))
-            return BadRequest(new { message = "Username already exists" });
-        var user = new User { FullName = dto.FullName, Username = dto.Username,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            Role = dto.Role, Phone = dto.Phone, LicenseNumber = dto.LicenseNumber };
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
-        return CreatedAtAction(nameof(Get), new { id = user.Id }, new { user.Id, user.FullName, user.Role });
-    }
-
-    [HttpPut("{id}")]
+    [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, UpdateUserDto dto)
     {
         var user = await _db.Users.FindAsync(id);
         if (user == null) return NotFound();
-        user.FullName = dto.FullName; user.Phone = dto.Phone;
-        user.LicenseNumber = dto.LicenseNumber; user.IsActive = dto.IsActive;
+
+        user.FullName = dto.FullName.Trim();
+        user.Phone = dto.Phone?.Trim();
+        user.LicenseNumber = dto.LicenseNumber?.Trim();
+        user.Email = dto.Email?.Trim();
+        user.IsActive = dto.IsActive;
         await _db.SaveChangesAsync();
         return NoContent();
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var user = await _db.Users.FindAsync(id);
-        if (user == null) return NotFound();
-        user.IsActive = false;
-        await _db.SaveChangesAsync();
-        return NoContent();
-    }
-
-    [HttpPatch("{id}/block")]
-    [Authorize(Roles = "Admin")]
+    [HttpPatch("{id:int}/block")]
     public async Task<IActionResult> Block(int id)
     {
         var user = await _db.Users.FindAsync(id);
         if (user == null) return NotFound();
+        if (user.Id == CurrentUserId)
+            return BadRequest(new { message = "You cannot block your own account." });
+        if (user.Role == "Admin")
+            return BadRequest(new { message = "Administrator accounts cannot be blocked from here." });
+
         user.IsActive = false;
+        user.InviteToken = null;
+        user.InviteExpiresAt = null;
         await _db.SaveChangesAsync();
-        return Ok(new { user.Id, user.FullName, user.Username, user.Role, user.IsActive });
+        return Ok(new { user.Id, user.IsActive });
     }
 
-    [HttpPatch("{id}/unblock")]
-    [Authorize(Roles = "Admin")]
+    [HttpPatch("{id:int}/unblock")]
     public async Task<IActionResult> Unblock(int id)
     {
         var user = await _db.Users.FindAsync(id);
         if (user == null) return NotFound();
         user.IsActive = true;
         await _db.SaveChangesAsync();
-        return Ok(new { user.Id, user.FullName, user.Username, user.Role, user.IsActive });
+        return Ok(new { user.Id, user.IsActive });
     }
 
-    [HttpPost("{id}/reset-password")]
-    [Authorize(Roles = "Admin")]
+    [HttpPost("{id:int}/reset-password")]
     public async Task<IActionResult> ResetPassword(int id, ResetPasswordDto dto)
     {
         var user = await _db.Users.FindAsync(id);
         if (user == null) return NotFound();
+        if (user.Role == "Admin" && user.Id != CurrentUserId)
+            return BadRequest(new { message = "Another administrator password cannot be changed from here." });
+
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+        user.InviteToken = null;
+        user.InviteExpiresAt = null;
         await _db.SaveChangesAsync();
-        return Ok(new { message = "Password reset successfully" });
+        return Ok(new { message = "Password reset successfully." });
     }
 }

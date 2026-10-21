@@ -1,187 +1,146 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using LogisticsAPI.Data;
 using LogisticsAPI.Models;
 
 namespace LogisticsAPI.Controllers;
 
-[ApiController]
 [Route("api/[controller]")]
-[Authorize]
-public class MessagesController : ControllerBase
+[Authorize(Roles = "Manager,Driver")]
+public class MessagesController : ApiControllerBase
 {
     private readonly AppDbContext _db;
     public MessagesController(AppDbContext db) => _db = db;
+    private int Cid => CurrentCompanyId ?? 0;
 
-    private int CurrentUserId =>
-        int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-    // GET /api/messages
-    // Driver: ?adminId=X  → their thread with that admin
-    // Admin:  ?driverId=X → their thread with that driver
-    [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] int? driverId, [FromQuery] int? adminId)
+    /// <summary>List of people the signed-in user can chat with, with last message and unread count.</summary>
+    [HttpGet("threads")]
+    public async Task<IActionResult> Threads()
     {
-        IQueryable<Message> q = _db.Messages
-            .Include(m => m.Sender)
-            .OrderBy(m => m.CreatedAt);
+        var peerRole = IsDriver ? "Manager" : "Driver";
 
-        if (User.IsInRole("Driver"))
+        var peers = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.CompanyId == Cid && u.IsActive && u.Role == peerRole)
+            .Select(u => new { u.Id, u.FullName, u.Role, u.Email, u.Phone })
+            .ToListAsync();
+
+        var messages = await _db.Messages
+            .AsNoTracking()
+            .Where(m => m.CompanyId == Cid &&
+                        (IsDriver ? m.DriverId == CurrentUserId : m.ManagerId == CurrentUserId))
+            .OrderBy(m => m.CreatedAt)
+            .ToListAsync();
+
+        var threads = peers.Select(p =>
         {
-            if (adminId == null)
-                return BadRequest(new { message = "adminId required" });
+            var thread = messages.Where(m => (IsDriver ? m.ManagerId : m.DriverId) == p.Id).ToList();
+            var last = thread.LastOrDefault();
+            var unread = thread.Count(m => !m.IsRead && (IsDriver ? !m.IsFromDriver : m.IsFromDriver));
+            return new
+            {
+                userId = p.Id,
+                fullName = p.FullName,
+                role = p.Role,
+                email = p.Email,
+                phone = p.Phone,
+                lastMessage = last?.Content,
+                lastMessageAt = last?.CreatedAt,
+                unread
+            };
+        }).OrderByDescending(t => t.lastMessageAt ?? DateTime.MinValue).ToList();
 
-            q = q.Where(m => m.DriverId == CurrentUserId && m.AdminId == adminId.Value);
-        }
-        else // Admin / Manager
-        {
-            if (driverId == null)
-                return BadRequest(new { message = "driverId required" });
-
-            q = q.Where(m => m.AdminId == CurrentUserId && m.DriverId == driverId.Value);
-        }
-
-        var msgs = await q.Select(m => new {
-            m.Id,
-            m.Content,
-            m.IsFromDriver,
-            m.CreatedAt,
-            m.IsRead,
-            SenderName = m.Sender != null ? m.Sender.FullName : null
-        }).ToListAsync();
-
-        return Ok(msgs);
+        return Ok(threads);
     }
 
-    // GET /api/messages/unread-count
-    // Driver: counts unread from any admin
-    // Admin:  counts unread from any driver (only in their own threads)
+    [HttpGet]
+    public async Task<IActionResult> Get([FromQuery] int withUserId)
+    {
+        var peer = await _db.Users.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == withUserId && u.CompanyId == Cid && u.Role != "Admin");
+        if (peer == null) return NotFound(new { message = "Conversation partner not found." });
+
+        var q = _db.Messages.AsNoTracking()
+            .Include(m => m.Sender)
+            .Where(m => m.CompanyId == Cid);
+
+        q = IsDriver
+            ? q.Where(m => m.DriverId == CurrentUserId && m.ManagerId == withUserId)
+            : q.Where(m => m.ManagerId == CurrentUserId && m.DriverId == withUserId);
+
+        var list = await q.OrderBy(m => m.CreatedAt)
+            .Select(m => new
+            {
+                m.Id,
+                m.Content,
+                m.IsFromDriver,
+                m.IsRead,
+                m.CreatedAt,
+                m.SenderId,
+                senderName = m.Sender != null ? m.Sender.FullName : null
+            }).ToListAsync();
+
+        return Ok(list);
+    }
+
     [HttpGet("unread-count")]
     public async Task<IActionResult> UnreadCount()
     {
-        int count;
-        if (User.IsInRole("Driver"))
-        {
-            count = await _db.Messages
-                .Where(m => m.DriverId == CurrentUserId && !m.IsFromDriver && !m.IsRead)
-                .CountAsync();
-        }
-        else
-        {
-            count = await _db.Messages
-                .Where(m => m.AdminId == CurrentUserId && m.IsFromDriver && !m.IsRead)
-                .CountAsync();
-        }
+        var count = IsDriver
+            ? await _db.Messages.CountAsync(m => m.CompanyId == Cid && m.DriverId == CurrentUserId && !m.IsFromDriver && !m.IsRead)
+            : await _db.Messages.CountAsync(m => m.CompanyId == Cid && m.ManagerId == CurrentUserId && m.IsFromDriver && !m.IsRead);
         return Ok(new { count });
     }
 
-    // GET /api/messages/my-threads
-    // Driver: returns list of admins they have threads with (or all admins)
-    // Admin:  returns list of drivers they have threads with
-    [HttpGet("my-threads")]
-    public async Task<IActionResult> MyThreads()
-    {
-        if (User.IsInRole("Driver"))
-        {
-            // Return all admins available to chat with
-            var admins = await _db.Users
-                .Where(u => u.Role == "Admin" || u.Role == "Manager")
-                .Select(u => new { u.Id, u.FullName, u.Role })
-                .ToListAsync();
-            return Ok(admins);
-        }
-        else
-        {
-            // Return drivers who have exchanged messages with this admin
-            // + all drivers (so admin can initiate)
-            var drivers = await _db.Users
-                .Where(u => u.Role == "Driver")
-                .Select(u => new {
-                    u.Id,
-                    u.FullName,
-                    UnreadCount = _db.Messages
-                        .Count(m => m.AdminId == CurrentUserId
-                                 && m.DriverId == u.Id
-                                 && m.IsFromDriver
-                                 && !m.IsRead)
-                })
-                .ToListAsync();
-            return Ok(drivers);
-        }
-    }
-
-    // POST /api/messages
-    // Driver sends: { content, toAdminId }
-    // Admin sends:  { content, toDriverId }
     [HttpPost]
     public async Task<IActionResult> Send([FromBody] SendMessageDto dto)
     {
-        Message msg;
+        var content = dto.Content?.Trim() ?? "";
+        if (content.Length == 0) return BadRequest(new { message = "Write a message first." });
+        if (content.Length > 4000) return BadRequest(new { message = "Message is too long." });
 
-        if (User.IsInRole("Driver"))
+        var peerRole = IsDriver ? "Manager" : "Driver";
+        var peer = await _db.Users.FirstOrDefaultAsync(u =>
+            u.Id == dto.ToUserId && u.CompanyId == Cid && u.IsActive && u.Role == peerRole);
+        if (peer == null) return BadRequest(new { message = "Conversation partner not found." });
+
+        var message = new Message
         {
-            if (dto.ToAdminId == null)
-                return BadRequest(new { message = "toAdminId required" });
+            CompanyId = Cid,
+            Content = content,
+            IsFromDriver = IsDriver,
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow,
+            SenderId = CurrentUserId,
+            DriverId = IsDriver ? CurrentUserId : peer.Id,
+            ManagerId = IsDriver ? peer.Id : CurrentUserId
+        };
 
-            msg = new Message
-            {
-                DriverId = CurrentUserId,
-                AdminId = dto.ToAdminId.Value,
-                SenderId = CurrentUserId,
-                Content = dto.Content,
-                IsFromDriver = true
-            };
-        }
-        else
-        {
-            if (dto.ToDriverId == null)
-                return BadRequest(new { message = "toDriverId required" });
-
-            msg = new Message
-            {
-                DriverId = dto.ToDriverId.Value,
-                AdminId = CurrentUserId,
-                SenderId = CurrentUserId,
-                Content = dto.Content,
-                IsFromDriver = false
-            };
-        }
-
-        _db.Messages.Add(msg);
+        _db.Messages.Add(message);
         await _db.SaveChangesAsync();
-        return Ok(new { msg.Id });
+        return Ok(new { message.Id, message.CreatedAt });
     }
 
-    // POST /api/messages/mark-read
-    // Driver: ?adminId=X  → marks messages from that admin as read
-    // Admin:  ?driverId=X → marks messages from that driver as read
     [HttpPost("mark-read")]
-    public async Task<IActionResult> MarkRead([FromQuery] int? driverId, [FromQuery] int? adminId)
+    public async Task<IActionResult> MarkRead([FromQuery] int withUserId)
     {
-        IQueryable<Message> q = _db.Messages;
-
-        if (User.IsInRole("Driver"))
+        if (IsDriver)
         {
-            if (adminId == null) return BadRequest();
-            q = q.Where(m => m.DriverId == CurrentUserId
-                           && m.AdminId == adminId.Value
-                           && !m.IsFromDriver
-                           && !m.IsRead);
+            await _db.Messages
+                .Where(m => m.CompanyId == Cid && m.DriverId == CurrentUserId &&
+                            m.ManagerId == withUserId && !m.IsFromDriver && !m.IsRead)
+                .ExecuteUpdateAsync(s => s.SetProperty(m => m.IsRead, true));
         }
         else
         {
-            if (driverId == null) return BadRequest();
-            q = q.Where(m => m.AdminId == CurrentUserId
-                           && m.DriverId == driverId.Value
-                           && m.IsFromDriver
-                           && !m.IsRead);
+            await _db.Messages
+                .Where(m => m.CompanyId == Cid && m.ManagerId == CurrentUserId &&
+                            m.DriverId == withUserId && m.IsFromDriver && !m.IsRead)
+                .ExecuteUpdateAsync(s => s.SetProperty(m => m.IsRead, true));
         }
-
-        await q.ExecuteUpdateAsync(s => s.SetProperty(m => m.IsRead, true));
         return Ok();
     }
 }
 
-public record SendMessageDto(string Content, int? ToDriverId, int? ToAdminId);
+public record SendMessageDto(string Content, int ToUserId);

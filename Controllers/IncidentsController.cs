@@ -1,40 +1,46 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using LogisticsAPI.Data;
 using LogisticsAPI.Models;
 
 namespace LogisticsAPI.Controllers;
 
-[ApiController]
 [Route("api/[controller]")]
-[Authorize]
-public class IncidentsController : ControllerBase
+[Authorize(Roles = "Manager,Driver")]
+public class IncidentsController : ApiControllerBase
 {
+    private static readonly string[] Types =
+    {
+        "Breakdown", "Accident", "Delay", "Road Closure", "Cargo Damage",
+        "Weather", "Border Delay", "Other"
+    };
+    private static readonly string[] Severities = { "Low", "Medium", "High" };
+
     private readonly AppDbContext _db;
     public IncidentsController(AppDbContext db) => _db = db;
-
-    private int CurrentUserId =>
-        int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    private int Cid => CurrentCompanyId ?? 0;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] string? status)
     {
         var q = _db.Incidents
+            .AsNoTracking()
             .Include(i => i.Trip)
             .Include(i => i.Reporter)
-            .AsQueryable();
+            .Where(i => i.CompanyId == Cid);
 
-        if (User.IsInRole("Driver"))
-            q = q.Where(i => i.ReportedByUserId == CurrentUserId);
+        if (IsDriver) q = q.Where(i => i.ReportedByUserId == CurrentUserId);
+        if (!string.IsNullOrWhiteSpace(status) && status != "All") q = q.Where(i => i.Status == status);
 
         var result = await q
             .OrderByDescending(i => i.ReportedAt)
-            .Select(i => new {
+            .Select(i => new
+            {
                 i.Id,
                 i.TripId,
                 TripNumber = i.Trip != null ? i.Trip.TripNumber : null,
+                Route = i.Trip != null ? i.Trip.OriginLocation + " → " + i.Trip.DestinationLocation : null,
                 i.Type,
                 i.Description,
                 i.Severity,
@@ -43,7 +49,7 @@ public class IncidentsController : ControllerBase
                 i.ReportedAt,
                 i.ResolvedAt,
                 i.Resolution,
-                DriverName = i.Reporter != null ? i.Reporter.FullName : null
+                ReporterName = i.Reporter != null ? i.Reporter.FullName : null
             }).ToListAsync();
 
         return Ok(result);
@@ -52,15 +58,31 @@ public class IncidentsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateIncidentDto dto)
     {
+        if (string.IsNullOrWhiteSpace(dto.Description))
+            return BadRequest(new { message = "Describe what happened." });
+
+        var type = Types.Contains(dto.Type) ? dto.Type : "Other";
+        var severity = Severities.Contains(dto.Severity) ? dto.Severity : "Medium";
+
+        if (dto.TripId.HasValue)
+        {
+            var trip = await _db.Trips.FirstOrDefaultAsync(t => t.Id == dto.TripId && t.CompanyId == Cid);
+            if (trip == null) return BadRequest(new { message = "Transport not found." });
+            if (IsDriver && trip.DriverId != CurrentUserId)
+                return Forbid();
+        }
+
         var incident = new Incident
         {
+            CompanyId = Cid,
             TripId = dto.TripId,
-            Type = dto.Type,
-            Description = dto.Description,
-            Severity = dto.Severity,
-            Location = dto.Location,
+            Type = type,
+            Description = dto.Description.Trim(),
+            Severity = severity,
+            Location = dto.Location?.Trim(),
             ReportedByUserId = CurrentUserId,
-            Status = "Open"
+            Status = "Open",
+            ReportedAt = DateTime.UtcNow
         };
 
         _db.Incidents.Add(incident);
@@ -68,15 +90,15 @@ public class IncidentsController : ControllerBase
         return Ok(new { incident.Id });
     }
 
-    [HttpPut("{id}/resolve")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HttpPut("{id:int}/resolve")]
+    [Authorize(Roles = "Manager")]
     public async Task<IActionResult> Resolve(int id, [FromBody] ResolveIncidentDto dto)
     {
-        var incident = await _db.Incidents.FindAsync(id);
+        var incident = await _db.Incidents.FirstOrDefaultAsync(i => i.Id == id && i.CompanyId == Cid);
         if (incident == null) return NotFound();
 
         incident.Status = "Resolved";
-        incident.Resolution = dto.Resolution;
+        incident.Resolution = dto.Resolution?.Trim();
         incident.ResolvedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();

@@ -1,170 +1,307 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using LogisticsAPI.Data;
 using LogisticsAPI.DTOs;
 using LogisticsAPI.Models;
+using LogisticsAPI.Services;
 
 namespace LogisticsAPI.Controllers;
 
-[ApiController]
 [Route("api/[controller]")]
-[Authorize]
-public class TripsController : ControllerBase
+[Authorize(Roles = "Manager,Driver")]
+public class TripsController : ApiControllerBase
 {
     private readonly AppDbContext _db;
-    public TripsController(AppDbContext db) => _db = db;
-    private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    private readonly RouteService _routes;
+
+    private static readonly string[] ActiveStatuses =
+    {
+        "Assigned", "CargoLoading", "LoadingComplete", "InTransit",
+        "NearDestination", "Unloading", "UnloadingComplete"
+    };
+
+    private static readonly Dictionary<string, string[]> AllowedTransitions = new()
+    {
+        ["Assigned"] = new[] { "CargoLoading", "Cancelled" },
+        ["CargoLoading"] = new[] { "LoadingComplete", "Cancelled" },
+        ["LoadingComplete"] = new[] { "InTransit", "Cancelled" },
+        ["InTransit"] = new[] { "NearDestination", "Unloading", "Cancelled" },
+        ["NearDestination"] = new[] { "Unloading", "Cancelled" },
+        ["Unloading"] = new[] { "UnloadingComplete", "Cancelled" },
+        ["UnloadingComplete"] = new[] { "DeliveryCompleted", "Cancelled" },
+        ["DeliveryCompleted"] = Array.Empty<string>(),
+        ["Cancelled"] = Array.Empty<string>()
+    };
+
+    public TripsController(AppDbContext db, RouteService routes) { _db = db; _routes = routes; }
+
+    private int Cid => CurrentCompanyId ?? 0;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? status, [FromQuery] int? driverId)
+    public async Task<IActionResult> GetAll([FromQuery] string? status, [FromQuery] int? driverId, [FromQuery] string? search)
     {
         var q = _db.Trips
+            .AsNoTracking()
             .Include(t => t.Driver)
             .Include(t => t.Vehicle)
             .Include(t => t.CargoItems)
-            .AsQueryable();
+            .Where(t => t.CompanyId == Cid);
 
-        if (User.IsInRole("Driver")) q = q.Where(t => t.DriverId == CurrentUserId);
+        if (IsDriver) q = q.Where(t => t.DriverId == CurrentUserId);
         else if (driverId.HasValue) q = q.Where(t => t.DriverId == driverId);
-        if (!string.IsNullOrEmpty(status)) q = q.Where(t => t.Status == status);
 
-        return Ok(await q.OrderByDescending(t => t.CreatedAt).ToListAsync());
+        if (!string.IsNullOrWhiteSpace(status) && status != "All")
+            q = q.Where(t => t.Status == status);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim();
+            q = q.Where(t => t.TripNumber.Contains(s) || t.OriginLocation.Contains(s) || t.DestinationLocation.Contains(s));
+        }
+
+        var list = await q.OrderByDescending(t => t.CreatedAt).ToListAsync();
+        return Ok(list);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> Get(int id)
     {
         var trip = await _db.Trips
+            .AsNoTracking()
             .Include(t => t.Driver)
             .Include(t => t.Vehicle)
             .Include(t => t.CargoItems)
             .Include(t => t.StatusHistory)
-            .FirstOrDefaultAsync(t => t.Id == id);
+            .FirstOrDefaultAsync(t => t.Id == id && t.CompanyId == Cid);
 
-        if (trip == null) return NotFound();
-        if (User.IsInRole("Driver") && trip.DriverId != CurrentUserId) return Forbid();
+        if (trip == null) return NotFound(new { message = "Transport not found." });
+        if (IsDriver && trip.DriverId != CurrentUserId) return Forbid();
         return Ok(trip);
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = "Manager")]
     public async Task<IActionResult> Create(CreateTripDto dto)
     {
-        // ── Enforce at least one cargo item ──────────────────────────
         if (dto.CargoIds == null || dto.CargoIds.Count == 0)
-            return BadRequest(new { message = "A trip must have at least one cargo item." });
+            return BadRequest(new { message = "Select at least one cargo item for the transport." });
+
+        if (string.IsNullOrWhiteSpace(dto.OriginLocation) || string.IsNullOrWhiteSpace(dto.DestinationLocation))
+            return BadRequest(new { message = "Origin and destination are required." });
+
+        if (!string.IsNullOrWhiteSpace(dto.OriginLocation) &&
+            string.Equals(dto.OriginLocation.Trim(), dto.DestinationLocation?.Trim(), StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Origin and destination must be different." });
+
+        var driver = dto.DriverId.HasValue
+            ? await _db.Users.FirstOrDefaultAsync(u => u.Id == dto.DriverId && u.CompanyId == Cid && u.Role == "Driver" && u.IsActive)
+            : null;
+        if (dto.DriverId.HasValue && driver == null)
+            return BadRequest(new { message = "The selected driver is not an active driver in your company." });
+
+        var vehicle = dto.VehicleId.HasValue
+            ? await _db.Vehicles.FirstOrDefaultAsync(v => v.Id == dto.VehicleId && v.CompanyId == Cid && v.IsActive)
+            : null;
+        if (dto.VehicleId.HasValue && vehicle == null)
+            return BadRequest(new { message = "The selected vehicle is not an active vehicle in your company." });
+
+        var cargoes = await _db.Cargoes
+            .Where(c => dto.CargoIds.Contains(c.Id) && c.CompanyId == Cid)
+            .ToListAsync();
+        if (cargoes.Count != dto.CargoIds.Distinct().Count())
+            return BadRequest(new { message = "One or more cargo items do not belong to your company." });
+        if (cargoes.Any(c => c.TripId.HasValue))
+            return BadRequest(new { message = "One or more cargo items are already assigned to another transport." });
 
         var trip = new Trip
         {
-            TripNumber = $"TRP-{DateTime.UtcNow:yyyyMMddHHmmss}",
-            DriverId = dto.DriverId,
-            VehicleId = dto.VehicleId,
-            OriginLocation = dto.OriginLocation,
-            DestinationLocation = dto.DestinationLocation,
+            CompanyId = Cid,
+            TripNumber = await NextTripNumberAsync(),
+            DriverId = driver?.Id,
+            VehicleId = vehicle?.Id,
+            OriginLocation = dto.OriginLocation!.Trim(),
+            DestinationLocation = dto.DestinationLocation!.Trim(),
             DistanceKm = dto.DistanceKm,
+            EstimatedDurationMinutes = dto.EstimatedDurationMinutes,
             PlannedDepartureDate = dto.PlannedDepartureDate,
             ExpectedArrivalDate = dto.ExpectedArrivalDate,
-            Remarks = dto.Remarks,
-            Status = "Assigned"
+            Remarks = dto.Remarks?.Trim(),
+            Status = "Assigned",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
+
+        if (!trip.DistanceKm.HasValue || trip.DistanceKm <= 0)
+        {
+            var route = await _routes.CalculateAsync(trip.OriginLocation, trip.DestinationLocation);
+            if (route != null)
+            {
+                trip.DistanceKm = route.DistanceKm;
+                trip.EstimatedDurationMinutes ??= route.DurationMinutes;
+            }
+        }
+
+        if (!trip.ExpectedArrivalDate.HasValue && trip.PlannedDepartureDate.HasValue && trip.EstimatedDurationMinutes.HasValue)
+            trip.ExpectedArrivalDate = trip.PlannedDepartureDate.Value.AddMinutes(trip.EstimatedDurationMinutes.Value);
 
         _db.Trips.Add(trip);
         await _db.SaveChangesAsync();
 
-        // Assign cargo items to this trip
-        var cargoes = await _db.Cargoes
-            .Where(c => dto.CargoIds.Contains(c.Id))
-            .ToListAsync();
-
-        if (cargoes.Count == 0)
-            return BadRequest(new { message = "None of the specified cargo items were found." });
-
         foreach (var c in cargoes) c.TripId = trip.Id;
-
         _db.TripStatusHistories.Add(new TripStatusHistory
         {
             TripId = trip.Id,
             Status = "Assigned",
-            Remarks = "Trip created",
+            Remarks = "Transport created",
             ChangedByUserId = CurrentUserId
         });
-
         await _db.SaveChangesAsync();
 
-        // Return full trip with cargo
         var created = await _db.Trips
-            .Include(t => t.Driver)
-            .Include(t => t.Vehicle)
-            .Include(t => t.CargoItems)
+            .AsNoTracking()
+            .Include(t => t.Driver).Include(t => t.Vehicle).Include(t => t.CargoItems)
             .FirstAsync(t => t.Id == trip.Id);
 
         return CreatedAtAction(nameof(Get), new { id = trip.Id }, created);
     }
 
-    [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = "Manager")]
     public async Task<IActionResult> Update(int id, CreateTripDto dto)
     {
-        // ── Enforce at least one cargo item ──────────────────────────
         if (dto.CargoIds == null || dto.CargoIds.Count == 0)
-            return BadRequest(new { message = "A trip must have at least one cargo item." });
+            return BadRequest(new { message = "Select at least one cargo item for the transport." });
 
-        var trip = await _db.Trips
-            .Include(t => t.CargoItems)
-            .FirstOrDefaultAsync(t => t.Id == id);
-
+        var trip = await _db.Trips.Include(t => t.CargoItems)
+            .FirstOrDefaultAsync(t => t.Id == id && t.CompanyId == Cid);
         if (trip == null) return NotFound();
+
+        if (dto.DriverId.HasValue &&
+            !await _db.Users.AnyAsync(u => u.Id == dto.DriverId && u.CompanyId == Cid && u.Role == "Driver" && u.IsActive))
+            return BadRequest(new { message = "The selected driver is not an active driver in your company." });
+
+        if (dto.VehicleId.HasValue &&
+            !await _db.Vehicles.AnyAsync(v => v.Id == dto.VehicleId && v.CompanyId == Cid && v.IsActive))
+            return BadRequest(new { message = "The selected vehicle is not an active vehicle in your company." });
+
+        var cargoes = await _db.Cargoes
+            .Where(c => dto.CargoIds.Contains(c.Id) && c.CompanyId == Cid)
+            .ToListAsync();
+        if (cargoes.Count != dto.CargoIds.Distinct().Count())
+            return BadRequest(new { message = "One or more cargo items do not belong to your company." });
+        if (cargoes.Any(c => c.TripId.HasValue && c.TripId != trip.Id))
+            return BadRequest(new { message = "One or more cargo items are already assigned to another transport." });
+
+        var originChanged = !string.Equals(trip.OriginLocation, dto.OriginLocation.Trim(), StringComparison.OrdinalIgnoreCase)
+                         || !string.Equals(trip.DestinationLocation, dto.DestinationLocation.Trim(), StringComparison.OrdinalIgnoreCase);
 
         trip.DriverId = dto.DriverId;
         trip.VehicleId = dto.VehicleId;
-        trip.OriginLocation = dto.OriginLocation;
-        trip.DestinationLocation = dto.DestinationLocation;
-        trip.DistanceKm = dto.DistanceKm;
+        trip.OriginLocation = dto.OriginLocation.Trim();
+        trip.DestinationLocation = dto.DestinationLocation.Trim();
         trip.PlannedDepartureDate = dto.PlannedDepartureDate;
         trip.ExpectedArrivalDate = dto.ExpectedArrivalDate;
-        trip.Remarks = dto.Remarks;
+        trip.EstimatedDurationMinutes = dto.EstimatedDurationMinutes;
+        trip.Remarks = dto.Remarks?.Trim();
         trip.UpdatedAt = DateTime.UtcNow;
 
-        // Unassign all previous cargo
-        foreach (var c in trip.CargoItems) c.TripId = null;
+        if (dto.DistanceKm.HasValue && dto.DistanceKm > 0)
+            trip.DistanceKm = dto.DistanceKm;
+        else if (originChanged)
+        {
+            trip.DistanceKm = null;
+            var route = await _routes.CalculateAsync(trip.OriginLocation, trip.DestinationLocation);
+            if (route != null)
+            {
+                trip.DistanceKm = route.DistanceKm;
+                trip.EstimatedDurationMinutes ??= route.DurationMinutes;
+            }
+        }
 
-        // Assign new cargo
-        var cargoes = await _db.Cargoes
-            .Where(c => dto.CargoIds.Contains(c.Id))
-            .ToListAsync();
+        if (!trip.ExpectedArrivalDate.HasValue && trip.PlannedDepartureDate.HasValue && trip.EstimatedDurationMinutes.HasValue)
+            trip.ExpectedArrivalDate = trip.PlannedDepartureDate.Value.AddMinutes(trip.EstimatedDurationMinutes.Value);
 
-        if (cargoes.Count == 0)
-            return BadRequest(new { message = "None of the specified cargo items were found." });
-
+        foreach (var old in trip.CargoItems) old.TripId = null;
         foreach (var c in cargoes) c.TripId = trip.Id;
 
         await _db.SaveChangesAsync();
         return NoContent();
     }
 
-    [HttpPut("{id}/status")]
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Manager")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var trip = await _db.Trips.Include(t => t.CargoItems)
+            .FirstOrDefaultAsync(t => t.Id == id && t.CompanyId == Cid);
+        if (trip == null) return NotFound();
+
+        if (trip.Status == "InTransit" || trip.Status == "NearDestination" || trip.Status == "Unloading")
+            return BadRequest(new { message = "A transport in progress cannot be deleted. Cancel it instead." });
+
+        foreach (var c in trip.CargoItems) c.TripId = null;
+        trip.Status = "Cancelled";
+        trip.UpdatedAt = DateTime.UtcNow;
+        _db.TripStatusHistories.Add(new TripStatusHistory
+        {
+            TripId = trip.Id,
+            Status = "Cancelled",
+            Remarks = "Transport cancelled by management",
+            ChangedByUserId = CurrentUserId
+        });
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpPut("{id:int}/status")]
     public async Task<IActionResult> UpdateStatus(int id, UpdateTripStatusDto dto)
     {
-        var trip = await _db.Trips.FindAsync(id);
-        if (trip == null) return NotFound();
-        if (User.IsInRole("Driver") && trip.DriverId != CurrentUserId) return Forbid();
+        var trip = await _db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.CompanyId == Cid);
+        if (trip == null) return NotFound(new { message = "Transport not found." });
+        if (IsDriver && trip.DriverId != CurrentUserId) return Forbid();
 
-        var allowed = new[]
+        var status = dto.Status?.Trim() ?? "";
+        if (!AllowedTransitions.ContainsKey(status))
+            return BadRequest(new { message = "Invalid transport status." });
+
+        if (IsDriver && status == "Cancelled")
+            return StatusCode(403, new { message = "Only management can cancel a transport." });
+
+        if (status != "Cancelled" && !AllowedTransitions[trip.Status].Contains(status))
+            return BadRequest(new { message = $"A transport cannot move from {trip.Status} to {status}." });
+
+        if (trip.Status == "DeliveryCompleted" || trip.Status == "Cancelled")
+            return BadRequest(new { message = "This transport is already closed." });
+
+        var now = DateTime.UtcNow;
+        trip.Status = status;
+        trip.UpdatedAt = now;
+
+        switch (status)
         {
-            "Assigned","CargoLoading","LoadingComplete","InTransit",
-            "NearDestination","Unloading","UnloadingComplete",  
-            "DeliveryCompleted","Cancelled"
-        };
-        if (!allowed.Contains(dto.Status))
-            return BadRequest(new { message = "Invalid status" });
+            case "CargoLoading":
+                trip.LoadingArrivalTime ??= dto.LoadingArrivalTime ?? now;
+                break;
+            case "LoadingComplete":
+                trip.LoadingEndTime ??= dto.LoadingEndTime ?? now;
+                break;
+            case "InTransit":
+                trip.ActualDepartureDate ??= now;
+                if (!trip.ExpectedArrivalDate.HasValue && trip.EstimatedDurationMinutes.HasValue)
+                    trip.ExpectedArrivalDate = now.AddMinutes(trip.EstimatedDurationMinutes.Value);
+                break;
+            case "Unloading":
+                trip.UnloadingArrivalTime ??= dto.UnloadingArrivalTime ?? now;
+                break;
+            case "UnloadingComplete":
+                trip.UnloadingEndTime ??= dto.UnloadingEndTime ?? now;
+                break;
+            case "DeliveryCompleted":
+                trip.ActualArrivalDate ??= now;
+                break;
+        }
 
-        trip.Status = dto.Status;
-        trip.UpdatedAt = DateTime.UtcNow;
-
-        if (dto.Status == "InTransit") trip.ActualDepartureDate = DateTime.UtcNow;
-        if (dto.Status == "DeliveryCompleted") trip.ActualArrivalDate = DateTime.UtcNow;
         if (dto.LoadingArrivalTime.HasValue) trip.LoadingArrivalTime = dto.LoadingArrivalTime;
         if (dto.LoadingEndTime.HasValue) trip.LoadingEndTime = dto.LoadingEndTime;
         if (dto.UnloadingArrivalTime.HasValue) trip.UnloadingArrivalTime = dto.UnloadingArrivalTime;
@@ -173,24 +310,60 @@ public class TripsController : ControllerBase
         _db.TripStatusHistories.Add(new TripStatusHistory
         {
             TripId = trip.Id,
-            Status = dto.Status,
-            Remarks = dto.Remarks,
+            Status = status,
+            Remarks = dto.Remarks?.Trim(),
+            ChangedAt = now,
             ChangedByUserId = CurrentUserId
         });
 
         await _db.SaveChangesAsync();
-        return NoContent();
+        return Ok(new { trip.Id, trip.Status, trip.DistanceKm, trip.ExpectedArrivalDate });
     }
 
-    [HttpPut("{id}/pod")]
+    /// <summary>Driver/manager starts the route and gets a Google Maps navigation link.</summary>
+    [HttpPost("{id:int}/start")]
+    public async Task<IActionResult> StartRoute(int id)
+    {
+        var trip = await _db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.CompanyId == Cid);
+        if (trip == null) return NotFound(new { message = "Transport not found." });
+        if (IsDriver && trip.DriverId != CurrentUserId) return Forbid();
+        if (trip.Status == "DeliveryCompleted" || trip.Status == "Cancelled")
+            return BadRequest(new { message = "This transport is already closed." });
+
+        var now = DateTime.UtcNow;
+        if (trip.Status != "InTransit" && trip.Status != "NearDestination" && trip.Status != "Unloading" && trip.Status != "UnloadingComplete")
+        {
+            trip.Status = "InTransit";
+            trip.ActualDepartureDate ??= now;
+            trip.UpdatedAt = now;
+            if (!trip.ExpectedArrivalDate.HasValue && trip.EstimatedDurationMinutes.HasValue)
+                trip.ExpectedArrivalDate = now.AddMinutes(trip.EstimatedDurationMinutes.Value);
+
+            _db.TripStatusHistories.Add(new TripStatusHistory
+            {
+                TripId = trip.Id,
+                Status = "InTransit",
+                Remarks = "Route started",
+                ChangedAt = now,
+                ChangedByUserId = CurrentUserId
+            });
+            await _db.SaveChangesAsync();
+        }
+
+        var mapsUrl = MapsUrl(trip.OriginLocation, trip.DestinationLocation);
+        return Ok(new { trip.Id, trip.Status, mapsUrl, trip.DistanceKm, trip.ExpectedArrivalDate });
+    }
+
+    [HttpPut("{id:int}/pod")]
     public async Task<IActionResult> ReceivePod(int id, PodReceiveDto dto)
     {
-        var trip = await _db.Trips.FindAsync(id);
+        var trip = await _db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.CompanyId == Cid);
         if (trip == null) return NotFound();
+        if (IsDriver && trip.DriverId != CurrentUserId) return Forbid();
 
-        trip.PodNumber = dto.PodNumber;
-        trip.PodReceived = true;
-        trip.Remarks = dto.Remarks;
+        trip.PodNumber = dto.PodNumber?.Trim();
+        trip.PodReceived = !string.IsNullOrWhiteSpace(dto.PodNumber);
+        trip.Remarks = dto.Remarks?.Trim();
         if (dto.LoadingArrivalTime.HasValue) trip.LoadingArrivalTime = dto.LoadingArrivalTime;
         if (dto.LoadingEndTime.HasValue) trip.LoadingEndTime = dto.LoadingEndTime;
         if (dto.UnloadingArrivalTime.HasValue) trip.UnloadingArrivalTime = dto.UnloadingArrivalTime;
@@ -206,15 +379,16 @@ public class TripsController : ControllerBase
     public async Task<IActionResult> MyTrips([FromQuery] string? status)
     {
         var q = _db.Trips
+            .AsNoTracking()
             .Include(t => t.Vehicle)
             .Include(t => t.CargoItems)
-            .Where(t => t.DriverId == CurrentUserId)
-            .AsQueryable();
+            .Where(t => t.CompanyId == Cid && t.DriverId == CurrentUserId);
 
-        if (!string.IsNullOrEmpty(status)) q = q.Where(t => t.Status == status);
+        if (!string.IsNullOrWhiteSpace(status) && status != "All") q = q.Where(t => t.Status == status);
 
         var trips = await q.OrderByDescending(t => t.CreatedAt)
-            .Select(t => new {
+            .Select(t => new
+            {
                 t.Id,
                 t.TripNumber,
                 t.OriginLocation,
@@ -226,7 +400,7 @@ public class TripsController : ControllerBase
                 t.Remarks,
                 VehicleRegistration = t.Vehicle != null ? t.Vehicle.RegistrationNumber : null,
                 CargoCount = t.CargoItems.Count,
-                TotalWeightTons = t.CargoItems.Sum(c => c.WeightTons)
+                TotalWeightTons = t.CargoItems.Sum(c => (decimal?)c.WeightTons) ?? 0
             }).ToListAsync();
 
         return Ok(trips);
@@ -237,18 +411,16 @@ public class TripsController : ControllerBase
     public async Task<IActionResult> MyStats()
     {
         var trips = await _db.Trips
-            .Where(t => t.DriverId == CurrentUserId)
+            .Where(t => t.CompanyId == Cid && t.DriverId == CurrentUserId)
+            .Select(t => new { t.Status, t.DistanceKm })
             .ToListAsync();
 
         return Ok(new
         {
             TotalTrips = trips.Count,
             CompletedTrips = trips.Count(t => t.Status == "DeliveryCompleted"),
-            InProgressTrips = trips.Count(t =>
-                t.Status == "InTransit" || t.Status == "CargoLoading" ||
-                t.Status == "LoadingComplete" || t.Status == "NearDestination" ||
-                t.Status == "Unloading"),
-            TotalDistanceKm = trips.Where(t => t.DistanceKm.HasValue).Sum(t => t.DistanceKm)
+            InProgressTrips = trips.Count(t => ActiveStatuses.Contains(t.Status)),
+            TotalDistanceKm = trips.Sum(t => t.DistanceKm ?? 0)
         });
     }
 
@@ -256,61 +428,39 @@ public class TripsController : ControllerBase
     [Authorize(Roles = "Driver")]
     public async Task<IActionResult> MyActiveTrip()
     {
-        var activeStatuses = new[]
-        {
-            "Assigned","CargoLoading","LoadingComplete",
-            "InTransit","NearDestination","Unloading"
-        };
-
         var trip = await _db.Trips
+            .AsNoTracking()
             .Include(t => t.Vehicle)
             .Include(t => t.CargoItems)
-            .Where(t => t.DriverId == CurrentUserId && activeStatuses.Contains(t.Status))
+            .Where(t => t.CompanyId == Cid && t.DriverId == CurrentUserId && ActiveStatuses.Contains(t.Status))
             .OrderByDescending(t => t.CreatedAt)
-            .Select(t => new {
+            .Select(t => new
+            {
                 t.Id,
                 t.OriginLocation,
                 t.DestinationLocation,
                 t.Status,
                 t.DistanceKm,
+                t.PlannedDepartureDate,
+                t.ExpectedArrivalDate,
                 VehicleRegistration = t.Vehicle != null ? t.Vehicle.RegistrationNumber : null,
                 CargoCount = t.CargoItems.Count,
-                TotalWeightTons = t.CargoItems.Sum(c => c.WeightTons)
+                TotalWeightTons = t.CargoItems.Sum(c => (decimal?)c.WeightTons) ?? 0
             })
             .FirstOrDefaultAsync();
 
         return Ok(trip);
     }
 
-    [HttpPatch("{id}/status")]
-    public async Task<IActionResult> PatchStatus(int id, UpdateTripStatusDto dto)
+    [HttpPatch("{id:int}/cmr")]
+    public async Task<IActionResult> UpdateCmr(int id, [FromBody] UpdateCmrDto dto)
     {
-        var trip = await _db.Trips.FindAsync(id);
+        var trip = await _db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.CompanyId == Cid);
         if (trip == null) return NotFound();
-        if (User.IsInRole("Driver") && trip.DriverId != CurrentUserId) return Forbid();
+        if (IsDriver && trip.DriverId != CurrentUserId) return Forbid();
 
-        var allowed = new[]
-        {
-            "Assigned","CargoLoading","LoadingComplete","InTransit",
-            "NearDestination","Unloading", "UnloadingComplete","DeliveryCompleted","Cancelled"
-        };
-
-        if (!allowed.Contains(dto.Status))
-            return BadRequest(new { message = "Invalid status" });
-
-        trip.Status = dto.Status;
+        trip.CmrNumber = dto.CmrNumber?.Trim();
         trip.UpdatedAt = DateTime.UtcNow;
-        if (dto.Status == "InTransit") trip.ActualDepartureDate = DateTime.UtcNow;
-        if (dto.Status == "DeliveryCompleted") trip.ActualArrivalDate = DateTime.UtcNow;
-
-        _db.TripStatusHistories.Add(new TripStatusHistory
-        {
-            TripId = trip.Id,
-            Status = dto.Status,
-            Remarks = dto.Remarks,
-            ChangedByUserId = CurrentUserId
-        });
-
         await _db.SaveChangesAsync();
         return NoContent();
     }
@@ -322,11 +472,12 @@ public class TripsController : ControllerBase
         var rangeTo = to ?? DateTime.UtcNow.Date.AddDays(14);
 
         var q = _db.Trips
+            .AsNoTracking()
             .Include(t => t.Driver)
             .Include(t => t.Vehicle)
-            .AsQueryable();
+            .Where(t => t.CompanyId == Cid);
 
-        if (User.IsInRole("Driver")) q = q.Where(t => t.DriverId == CurrentUserId);
+        if (IsDriver) q = q.Where(t => t.DriverId == CurrentUserId);
 
         q = q.Where(t =>
             (t.PlannedDepartureDate ?? t.CreatedAt) <= rangeTo &&
@@ -338,7 +489,7 @@ public class TripsController : ControllerBase
             ? trips.Where(t => t.DriverId.HasValue).Select(t => new
             {
                 resourceId = t.DriverId,
-                resourceLabel = t.Driver != null ? t.Driver.FullName : null,
+                resourceLabel = t.Driver?.FullName,
                 tripId = t.Id,
                 tripNumber = t.TripNumber,
                 start = t.PlannedDepartureDate ?? t.CreatedAt,
@@ -350,7 +501,7 @@ public class TripsController : ControllerBase
             : trips.Where(t => t.VehicleId.HasValue).Select(t => new
             {
                 resourceId = t.VehicleId,
-                resourceLabel = t.Vehicle != null ? t.Vehicle.RegistrationNumber : null,
+                resourceLabel = t.Vehicle?.RegistrationNumber,
                 tripId = t.Id,
                 tripNumber = t.TripNumber,
                 start = t.PlannedDepartureDate ?? t.CreatedAt,
@@ -363,16 +514,22 @@ public class TripsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPatch("{id}/cmr")]
-    public async Task<IActionResult> UpdateCmr(int id, [FromBody] UpdateCmrDto dto)
+    private async Task<string> NextTripNumberAsync()
     {
-        var trip = await _db.Trips.FindAsync(id);
-        if (trip == null) return NotFound();
-        if (User.IsInRole("Driver") && trip.DriverId != CurrentUserId) return Forbid();
+        for (var i = 0; i < 10; i++)
+        {
+            var number = $"TRP-{DateTime.UtcNow:yyMMdd}-{Random.Shared.Next(1000, 9999)}";
+            if (!await _db.Trips.AnyAsync(t => t.TripNumber == number)) return number;
+        }
+        return $"TRP-{DateTime.UtcNow:yyMMddHHmmss}";
+    }
 
-        trip.CmrNumber = dto.CmrNumber;
-        trip.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
-        return NoContent();
+    private static string MapsUrl(string origin, string destination)
+    {
+        return "https://www.google.com/maps/dir/?api=1" +
+               $"&origin={Uri.EscapeDataString(origin)}" +
+               $"&destination={Uri.EscapeDataString(destination)}" +
+               "&travelmode=driving";
     }
 }
+
