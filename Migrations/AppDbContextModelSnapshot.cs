@@ -264,6 +264,10 @@ namespace LogisticsAPI.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ImgBBApiKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("JwtKey")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -400,6 +404,18 @@ namespace LogisticsAPI.Migrations
                     b.Property<DateTime?>("ActualDepartureDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CmrImageDeleteUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("CmrImageThumbUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("CmrImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("CmrNumber")
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
@@ -409,6 +425,18 @@ namespace LogisticsAPI.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("DeliveryNoteImageDeleteUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("DeliveryNoteImageThumbUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("DeliveryNoteImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("DestinationLocation")
                         .IsRequired()

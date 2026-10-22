@@ -25,6 +25,7 @@ builder.Services.AddSingleton(jwtKeys);
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<RouteService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddHttpClient<ImgBBService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient("routing", c => c.Timeout = TimeSpan.FromSeconds(12));
 
@@ -110,6 +111,17 @@ using (var scope = app.Services.CreateScope())
         await db.Database.MigrateAsync();
         await jwtKeys.InitializeAsync(db, app.Logger);
         await DbSeeder.SeedAsync(db, builder.Configuration, app.Logger);
+
+        var imgBbKey = builder.Configuration["ImgBB:ApiKey"] ?? Environment.GetEnvironmentVariable("IMGBB_API_KEY");
+        if (!string.IsNullOrWhiteSpace(imgBbKey))
+        {
+            var settings = await db.PlatformSettings.FirstOrDefaultAsync();
+            if (settings != null)
+            {
+                settings.ImgBBApiKey = imgBbKey.Trim();
+                await db.SaveChangesAsync();
+            }
+        }
     }
     catch (Exception ex)
     {

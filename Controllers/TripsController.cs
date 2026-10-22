@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LogisticsAPI.Data;
@@ -14,6 +14,7 @@ public class TripsController : ApiControllerBase
 {
     private readonly AppDbContext _db;
     private readonly RouteService _routes;
+    private readonly ImgBBService _imgBB;
 
     private static readonly string[] ActiveStatuses =
     {
@@ -34,7 +35,12 @@ public class TripsController : ApiControllerBase
         ["Cancelled"] = Array.Empty<string>()
     };
 
-    public TripsController(AppDbContext db, RouteService routes) { _db = db; _routes = routes; }
+    public TripsController(AppDbContext db, RouteService routes, ImgBBService imgBB)
+    {
+        _db = db;
+        _routes = routes;
+        _imgBB = imgBB;
+    }
 
     private int Cid => CurrentCompanyId ?? 0;
 
@@ -512,6 +518,96 @@ public class TripsController : ApiControllerBase
             });
 
         return Ok(result);
+    }
+
+    [HttpPost("{id:int}/documents/{type}")]
+    [RequestSizeLimit(10_000_000)]
+    public async Task<IActionResult> UploadDocument(int id, string type, IFormFile? file)
+    {
+        var kind = NormalizeDocumentType(type);
+        if (kind == null)
+            return BadRequest(new { message = "Document type must be cmr or delivery-note." });
+
+        var trip = await _db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.CompanyId == Cid);
+        if (trip == null) return NotFound(new { message = "Transport not found." });
+        if (IsDriver && trip.DriverId != CurrentUserId) return Forbid();
+
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "Select an image to upload." });
+        if (file.Length > 8 * 1024 * 1024)
+            return BadRequest(new { message = "Image must be smaller than 8 MB." });
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension))
+            return BadRequest(new { message = "Use a JPG, PNG or WebP image." });
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var upload = await _imgBB.UploadAsync(stream, file.FileName, file.ContentType);
+            if (kind == "cmr")
+            {
+                trip.CmrImageUrl = upload.Url;
+                trip.CmrImageThumbUrl = upload.ThumbUrl;
+                trip.CmrImageDeleteUrl = upload.DeleteUrl;
+            }
+            else
+            {
+                trip.DeliveryNoteImageUrl = upload.Url;
+                trip.DeliveryNoteImageThumbUrl = upload.ThumbUrl;
+                trip.DeliveryNoteImageDeleteUrl = upload.DeleteUrl;
+            }
+            trip.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return Ok(new { type = kind, url = upload.Url, thumbUrl = upload.ThumbUrl });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return StatusCode(503, new { message = ex.Message });
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(502, new { message = "Image hosting is currently unavailable." });
+        }
+    }
+
+    [HttpDelete("{id:int}/documents/{type}")]
+    public async Task<IActionResult> RemoveDocument(int id, string type)
+    {
+        var kind = NormalizeDocumentType(type);
+        if (kind == null)
+            return BadRequest(new { message = "Document type must be cmr or delivery-note." });
+
+        var trip = await _db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.CompanyId == Cid);
+        if (trip == null) return NotFound(new { message = "Transport not found." });
+        if (IsDriver && trip.DriverId != CurrentUserId) return Forbid();
+
+        if (kind == "cmr")
+        {
+            trip.CmrImageUrl = null;
+            trip.CmrImageThumbUrl = null;
+            trip.CmrImageDeleteUrl = null;
+        }
+        else
+        {
+            trip.DeliveryNoteImageUrl = null;
+            trip.DeliveryNoteImageThumbUrl = null;
+            trip.DeliveryNoteImageDeleteUrl = null;
+        }
+        trip.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(new { removed = true });
+    }
+
+    private static string? NormalizeDocumentType(string type)
+    {
+        return type.Trim().ToLowerInvariant() switch
+        {
+            "cmr" => "cmr",
+            "delivery-note" or "deliverynote" or "delivery_note" => "delivery-note",
+            _ => null
+        };
     }
 
     private async Task<string> NextTripNumberAsync()

@@ -6,5 +6,6 @@ public class PlatformSetting
 {
     public int Id { get; set; }
     [Required, MaxLength(200)] public string JwtKey { get; set; } = "";
+    [MaxLength(200)] public string? ImgBBApiKey { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

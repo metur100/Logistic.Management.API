@@ -1,4 +1,4 @@
-using LogisticsAPI.Models;
+﻿using LogisticsAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace LogisticsAPI.Data;
@@ -103,7 +103,7 @@ public static class DbSeeder
             Phone = "+387 33 555 120",
             Address = "Zmaja od Bosne 12",
             City = "Sarajevo",
-            Country = "Bosnia and Herzegovina",
+            Country = "Bosna i Hercegovina",
             Status = "Active",
             IsVerified = true,
             CreatedAt = now.AddDays(-72)
@@ -112,7 +112,7 @@ public static class DbSeeder
         var manager = new User
         {
             Company = company,
-            FullName = "Selma Begić",
+            FullName = "Selma BegiÄ‡",
             Username = "manager",
             Email = "selma@translog.ba",
             Phone = "+387 61 220 340",
@@ -126,7 +126,7 @@ public static class DbSeeder
         var driver1 = new User
         {
             Company = company,
-            FullName = "Amar Hodžić",
+            FullName = "Amar HodÅ¾iÄ‡",
             Username = "driver1",
             Email = "amar@translog.ba",
             Phone = "+387 62 118 220",
@@ -141,7 +141,7 @@ public static class DbSeeder
         var driver2 = new User
         {
             Company = company,
-            FullName = "Lejla Karić",
+            FullName = "Lejla KariÄ‡",
             Username = "driver2",
             Email = "lejla@translog.ba",
             Phone = "+387 63 440 187",
@@ -171,19 +171,19 @@ public static class DbSeeder
         };
         var v3 = new Vehicle
         {
-            CompanyId = company.Id, RegistrationNumber = "J11-K-222", FleetName = "Refrigerated 01",
+            CompanyId = company.Id, RegistrationNumber = "J11-K-222", FleetName = "HladnjaÄa 01",
             Type = "Refrigerated", Capacity = 12, OwnershipType = "Leased", OwnerName = "Frigo Leasing",
             OwnerPhone = "+387 33 777 210", CreatedAt = now.AddDays(-40)
         };
         db.Vehicles.AddRange(v1, v2, v3);
 
-        var c1 = Cargo("Consumer electronics pallets", "Tehnomax d.o.o.", "Media Market Sarajevo", 8.5m, 32, "General", "Handle with care. Two pallets must stay upright.");
-        var c2 = Cargo("Office furniture", "Kika Bosnia", "Hotel Europa", 4.2m, 18, "General", null);
-        var c3 = Cargo("Medical supplies", "MedicPro d.o.o.", "KCUS Central Pharmacy", 2.8m, 9, "General", "Deliver to the pharmacy reception before 16:00.");
-        var c4 = Cargo("Frozen food pallets", "Ledo d.o.o.", "Konzum Sarajevo", 6.7m, 24, "Perishable", "Keep at -18 °C. Do not break the cold chain.");
-        var c5 = Cargo("Construction steel coils", "ArcelorMittal Zenica", "Gradnja d.o.o. Tuzla", 18m, 14, "Oversized", "Secure with straps every 1.5 m.");
-        var c6 = Cargo("Packaging materials", "DS Smith", "Bingo Export", 3.4m, 22, "General", null);
-        var c7 = Cargo("Beverage pallets", "Coca-Cola HBC", "Amko Komerc", 11.6m, 28, "General", null);
+        var c1 = Cargo("Palete potroÅ¡aÄke elektronike", "Tehnomax d.o.o.", "Media Market Sarajevo", 8.5m, 32, "General", "PaÅ¾ljivo rukovati. Dvije palete moraju ostati uspravne.");
+        var c2 = Cargo("Kancelarijska oprema", "Kika Bosnia", "Hotel Europa", 4.2m, 18, "General", null);
+        var c3 = Cargo("Medicinski materijal", "MedicPro d.o.o.", "KCUS Central Pharmacy", 2.8m, 9, "General", "Dostaviti na recepciju apoteke prije 16:00.");
+        var c4 = Cargo("Palete smrznute hrane", "Ledo d.o.o.", "Konzum Sarajevo", 6.7m, 24, "Perishable", "ÄŒuvati na -18 Â°C. Ne prekidati hladni lanac.");
+        var c5 = Cargo("GraÄ‘evinski ÄeliÄni namotaji", "ArcelorMittal Zenica", "Gradnja d.o.o. Tuzla", 18m, 14, "Oversized", "Osigurati remenjem na svakih 1,5 m.");
+        var c6 = Cargo("AmbalaÅ¾ni materijal", "DS Smith", "Bingo Export", 3.4m, 22, "General", null);
+        var c7 = Cargo("Palete piÄ‡a", "Coca-Cola HBC", "Amko Komerc", 11.6m, 28, "General", null);
         foreach (var c in new[] { c1, c2, c3, c4, c5, c6, c7 }) c.CompanyId = company.Id;
         db.Cargoes.AddRange(c1, c2, c3, c4, c5, c6, c7);
         await db.SaveChangesAsync();
@@ -191,17 +191,17 @@ public static class DbSeeder
         var t1 = new Trip
         {
             CompanyId = company.Id, TripNumber = "TRP-260101-4101", DriverId = driver1.Id, VehicleId = v1.Id,
-            OriginLocation = "Sarajevo, Bosnia and Herzegovina", DestinationLocation = "Zenica, Bosnia and Herzegovina",
+            OriginLocation = "Sarajevo, Bosna i Hercegovina", DestinationLocation = "Zenica, Bosna i Hercegovina",
             DistanceKm = 71, EstimatedDurationMinutes = 65, Status = "Assigned",
             PlannedDepartureDate = now.Date.AddDays(1).AddHours(8),
             ExpectedArrivalDate = now.Date.AddDays(1).AddHours(9).AddMinutes(5),
-            Remarks = "Loading dock 3. Call the consignee 30 minutes before arrival.",
+            Remarks = "Utovarna rampa 3. Nazovite primatelja 30 minuta prije dolaska.",
             CreatedAt = now.AddHours(-26), UpdatedAt = now.AddHours(-26)
         };
         var t2 = new Trip
         {
             CompanyId = company.Id, TripNumber = "TRP-260101-4102", DriverId = driver2.Id, VehicleId = v2.Id,
-            OriginLocation = "Sarajevo, Bosnia and Herzegovina", DestinationLocation = "Banja Luka, Bosnia and Herzegovina",
+            OriginLocation = "Sarajevo, Bosna i Hercegovina", DestinationLocation = "Banja Luka, Bosna i Hercegovina",
             DistanceKm = 195, EstimatedDurationMinutes = 175, Status = "CargoLoading",
             PlannedDepartureDate = now.Date.AddHours(14), ExpectedArrivalDate = now.Date.AddHours(17),
             LoadingArrivalTime = now.AddMinutes(-35),
@@ -210,7 +210,7 @@ public static class DbSeeder
         var t3 = new Trip
         {
             CompanyId = company.Id, TripNumber = "TRP-260101-4103", DriverId = driver1.Id, VehicleId = v3.Id,
-            OriginLocation = "Sarajevo, Bosnia and Herzegovina", DestinationLocation = "Mostar, Bosnia and Herzegovina",
+            OriginLocation = "Sarajevo, Bosna i Hercegovina", DestinationLocation = "Mostar, Bosna i Hercegovina",
             DistanceKm = 130, EstimatedDurationMinutes = 125, Status = "InTransit",
             PlannedDepartureDate = now.Date.AddHours(6), ExpectedArrivalDate = now.AddHours(2),
             ActualDepartureDate = now.AddHours(-2),
@@ -220,7 +220,7 @@ public static class DbSeeder
         var t4 = new Trip
         {
             CompanyId = company.Id, TripNumber = "TRP-251231-4104", DriverId = driver2.Id, VehicleId = v1.Id,
-            OriginLocation = "Sarajevo, Bosnia and Herzegovina", DestinationLocation = "Tuzla, Bosnia and Herzegovina",
+            OriginLocation = "Sarajevo, Bosna i Hercegovina", DestinationLocation = "Tuzla, Bosna i Hercegovina",
             DistanceKm = 118, EstimatedDurationMinutes = 110, Status = "DeliveryCompleted",
             PlannedDepartureDate = now.Date.AddDays(-1).AddHours(7),
             ExpectedArrivalDate = now.Date.AddDays(-1).AddHours(9),
@@ -236,7 +236,7 @@ public static class DbSeeder
         var t5 = new Trip
         {
             CompanyId = company.Id, TripNumber = "TRP-251229-4105", DriverId = driver1.Id, VehicleId = v2.Id,
-            OriginLocation = "Sarajevo, Bosnia and Herzegovina", DestinationLocation = "Bihać, Bosnia and Herzegovina",
+            OriginLocation = "Sarajevo, Bosna i Hercegovina", DestinationLocation = "BihaÄ‡, Bosna i Hercegovina",
             DistanceKm = 312, EstimatedDurationMinutes = 290, Status = "DeliveryCompleted",
             PlannedDepartureDate = now.Date.AddDays(-5).AddHours(5),
             ExpectedArrivalDate = now.Date.AddDays(-5).AddHours(10),
@@ -256,63 +256,63 @@ public static class DbSeeder
         db.Trips.AddRange(t1, t2, t3, t4, t5);
         await db.SaveChangesAsync();
 
-        History(t1, manager.Id, "Assigned", t1.CreatedAt, "Transport created");
-        History(t2, manager.Id, "Assigned", t2.CreatedAt, "Transport created");
-        History(t2, manager.Id, "CargoLoading", t2.LoadingArrivalTime!.Value, "Loading started");
-        History(t3, manager.Id, "Assigned", t3.CreatedAt, "Transport created");
-        History(t3, manager.Id, "CargoLoading", t3.LoadingArrivalTime!.Value, "Loading started");
-        History(t3, driver1.Id, "LoadingComplete", t3.LoadingEndTime!.Value, "Cargo secured");
-        History(t3, driver1.Id, "InTransit", t3.ActualDepartureDate!.Value, "Route started");
-        History(t4, manager.Id, "Assigned", t4.CreatedAt, "Transport created");
-        History(t4, manager.Id, "CargoLoading", t4.LoadingArrivalTime!.Value, "Loading started");
-        History(t4, driver2.Id, "LoadingComplete", t4.LoadingEndTime!.Value, "Cargo secured");
-        History(t4, driver2.Id, "InTransit", t4.ActualDepartureDate!.Value, "Route started");
-        History(t4, driver2.Id, "Unloading", t4.UnloadingArrivalTime!.Value, "Arrived at consignee");
-        History(t4, driver2.Id, "UnloadingComplete", t4.UnloadingEndTime!.Value, "Unloading finished");
-        History(t4, driver2.Id, "DeliveryCompleted", t4.ActualArrivalDate!.Value, "POD signed");
-        History(t5, manager.Id, "Assigned", t5.CreatedAt, "Transport created");
-        History(t5, driver1.Id, "InTransit", t5.ActualDepartureDate!.Value, "Route started");
-        History(t5, driver1.Id, "DeliveryCompleted", t5.ActualArrivalDate!.Value, "Delivered");
+        History(t1, manager.Id, "Assigned", t1.CreatedAt, "Transport kreiran");
+        History(t2, manager.Id, "Assigned", t2.CreatedAt, "Transport kreiran");
+        History(t2, manager.Id, "CargoLoading", t2.LoadingArrivalTime!.Value, "Utovar zapoÄet");
+        History(t3, manager.Id, "Assigned", t3.CreatedAt, "Transport kreiran");
+        History(t3, manager.Id, "CargoLoading", t3.LoadingArrivalTime!.Value, "Utovar zapoÄet");
+        History(t3, driver1.Id, "LoadingComplete", t3.LoadingEndTime!.Value, "Teret osiguran");
+        History(t3, driver1.Id, "InTransit", t3.ActualDepartureDate!.Value, "Ruta zapoÄeta");
+        History(t4, manager.Id, "Assigned", t4.CreatedAt, "Transport kreiran");
+        History(t4, manager.Id, "CargoLoading", t4.LoadingArrivalTime!.Value, "Utovar zapoÄet");
+        History(t4, driver2.Id, "LoadingComplete", t4.LoadingEndTime!.Value, "Teret osiguran");
+        History(t4, driver2.Id, "InTransit", t4.ActualDepartureDate!.Value, "Ruta zapoÄeta");
+        History(t4, driver2.Id, "Unloading", t4.UnloadingArrivalTime!.Value, "Stiglo do primatelja");
+        History(t4, driver2.Id, "UnloadingComplete", t4.UnloadingEndTime!.Value, "Istovar zavrÅ¡en");
+        History(t4, driver2.Id, "DeliveryCompleted", t4.ActualArrivalDate!.Value, "POD potpisan");
+        History(t5, manager.Id, "Assigned", t5.CreatedAt, "Transport kreiran");
+        History(t5, driver1.Id, "InTransit", t5.ActualDepartureDate!.Value, "Ruta zapoÄeta");
+        History(t5, driver1.Id, "DeliveryCompleted", t5.ActualArrivalDate!.Value, "Dostavljeno");
 
         db.Incidents.AddRange(
             new Incident
             {
                 CompanyId = company.Id, TripId = t3.Id, Type = "Breakdown", Severity = "High", Status = "Open",
-                Description = "Rear air suspension warning appeared on the A1 near Konjic. Vehicle is moving slowly to the next exit.",
-                Location = "A1 highway, near Konjic", ReportedByUserId = driver1.Id, ReportedAt = now.AddMinutes(-42)
+                Description = "Pojavilo se upozorenje na zadnji zraÄni ovjes na A1 kod Konjica. Vozilo se kreÄ‡e polako do sljedeÄ‡eg izlaza.",
+                Location = "Autoput A1, kod Konjica", ReportedByUserId = driver1.Id, ReportedAt = now.AddMinutes(-42)
             },
             new Incident
             {
                 CompanyId = company.Id, TripId = t4.Id, Type = "Delay", Severity = "Low", Status = "Resolved",
-                Description = "30 minute delay at the loading ramp due to a missing customs document.",
-                Location = "Sarajevo loading terminal", ReportedByUserId = driver2.Id,
+                Description = "KaÅ¡njenje od 30 minuta na utovarnoj rampi zbog nedostajuÄ‡eg carinskog dokumenta.",
+                Location = "Utovarni terminal Sarajevo", ReportedByUserId = driver2.Id,
                 ReportedAt = now.Date.AddDays(-1).AddHours(6), ResolvedAt = now.Date.AddDays(-1).AddHours(6).AddMinutes(25),
-                Resolution = "Document sent electronically by dispatch; loading continued."
+                Resolution = "Dokument je elektronski poslan od dispeÄera; utovar je nastavljen."
             });
 
         db.Messages.AddRange(
-            Msg(company.Id, driver1.Id, manager.Id, manager.Id, false, now.AddHours(-4), "Good morning Amar. Your Mostar load is ready at dock 2.", true),
-            Msg(company.Id, driver1.Id, manager.Id, driver1.Id, true, now.AddHours(-3).AddMinutes(-50), "On my way, ETA 10 minutes.", true),
-            Msg(company.Id, driver1.Id, manager.Id, manager.Id, false, now.AddHours(-2).AddMinutes(-20), "Thanks. Please send the CMR number once you depart.", true),
-            Msg(company.Id, driver1.Id, manager.Id, driver1.Id, true, now.AddMinutes(-38), "CMR is CMR-2026-00418. There is a suspension warning, I reported an incident.", false),
-            Msg(company.Id, driver2.Id, manager.Id, manager.Id, false, now.AddHours(-1), "Lejla, the Banja Luka consignee asked for a 30 minute delay.", true),
-            Msg(company.Id, driver2.Id, manager.Id, driver2.Id, true, now.AddMinutes(-25), "Understood, I will leave at 14:30 instead.", false)
+            Msg(company.Id, driver1.Id, manager.Id, manager.Id, false, now.AddHours(-4), "Dobro jutro Amar. Tvoj teret za Mostar je spreman na rampi 2.", true),
+            Msg(company.Id, driver1.Id, manager.Id, driver1.Id, true, now.AddHours(-3).AddMinutes(-50), "Na putu sam, dolazim za 10 minuta.", true),
+            Msg(company.Id, driver1.Id, manager.Id, manager.Id, false, now.AddHours(-2).AddMinutes(-20), "Hvala. PoÅ¡alji broj CMR-a kad kreneÅ¡.", true),
+            Msg(company.Id, driver1.Id, manager.Id, driver1.Id, true, now.AddMinutes(-38), "CMR je CMR-2026-00418. Postoji upozorenje na ovjes, prijavio sam incident.", false),
+            Msg(company.Id, driver2.Id, manager.Id, manager.Id, false, now.AddHours(-1), "Lejla, primatelj u Banjoj Luci traÅ¾i odgodu od 30 minuta.", true),
+            Msg(company.Id, driver2.Id, manager.Id, driver2.Id, true, now.AddMinutes(-25), "Razumijem, krenut Ä‡u u 14:30.", false)
         );
 
         db.SupportTickets.AddRange(
             new SupportTicket
             {
-                CompanyId = company.Id, Subject = "Add two more driver accounts",
-                Description = "We are onboarding two seasonal drivers next week. Is there a limit on driver accounts for our plan?",
+                CompanyId = company.Id, Subject = "Dodaj joÅ¡ dva vozaÄka raÄuna",
+                Description = "SljedeÄ‡e sedmice uvodimo dva sezonska vozaÄa. Postoji li ograniÄenje broja vozaÄkih raÄuna na naÅ¡em planu?",
                 Status = "Open", Priority = "Medium", CreatedByUserId = manager.Id,
                 CreatedAt = now.AddHours(-20), UpdatedAt = now.AddHours(-20)
             },
             new SupportTicket
             {
-                CompanyId = company.Id, Subject = "Driver app shows an old vehicle",
-                Description = "After reassigning the vehicle, the driver app still showed the previous registration for a few minutes.",
+                CompanyId = company.Id, Subject = "Aplikacija vozaÄa prikazuje staro vozilo",
+                Description = "Nakon dodjele drugog vozila, aplikacija vozaÄa je joÅ¡ nekoliko minuta prikazivala prethodnu registraciju.",
                 Status = "Resolved", Priority = "Low", CreatedByUserId = driver1.Id,
-                Resolution = "Cache refreshed after a pull-to-refresh; monitoring.",
+                Resolution = "KeÅ¡ je osvjeÅ¾en povlaÄenjem naniÅ¾e; pratimo situaciju.",
                 CreatedAt = now.AddDays(-4), UpdatedAt = now.AddDays(-3), ResolvedAt = now.AddDays(-3)
             });
 
@@ -355,3 +355,4 @@ public static class DbSeeder
             IsRead = read
         };
 }
+

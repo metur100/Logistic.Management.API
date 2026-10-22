@@ -29,6 +29,12 @@ public class Trip
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     [MaxLength(60)] public string? CmrNumber { get; set; }
+    [MaxLength(500)] public string? CmrImageUrl { get; set; }
+    [MaxLength(500)] public string? CmrImageThumbUrl { get; set; }
+    [MaxLength(1000)] public string? CmrImageDeleteUrl { get; set; }
+    [MaxLength(500)] public string? DeliveryNoteImageUrl { get; set; }
+    [MaxLength(500)] public string? DeliveryNoteImageThumbUrl { get; set; }
+    [MaxLength(1000)] public string? DeliveryNoteImageDeleteUrl { get; set; }
     public ICollection<Cargo> CargoItems { get; set; } = new List<Cargo>();
     public ICollection<TripStatusHistory> StatusHistory { get; set; } = new List<TripStatusHistory>();
 }
