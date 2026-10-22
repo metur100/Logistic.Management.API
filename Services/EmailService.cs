@@ -60,27 +60,27 @@ public class EmailService
     public async Task<(bool Sent, string? Error)> SendInviteAsync(
         string to, string driverName, string companyName, string username, string inviteLink, DateTime expiresAt)
     {
-        var subject = $"Your driver account for {companyName}";
+        var subject = $"Vaš vozački račun za {companyName}";
         var html = Template($"""
-            <h1 style="margin:0 0 12px;font-size:24px;line-height:1.25;color:#111a24;">You're invited to drive for {H(companyName)}</h1>
+            <h1 style="margin:0 0 12px;font-size:24px;line-height:1.25;color:#111a24;">Pozvani ste da vozite za {H(companyName)}</h1>
             <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#475467;">
-              Hi {H(driverName)}, your company created a LogistiTrack driver account for you.
-              Choose your password and you can start receiving transports.
+              Zdravo {H(driverName)}, vaša firma je kreirala LogistiTrack vozački račun za vas.
+              Odaberite lozinku i možete početi primati transporte.
             </p>
             <table role="presentation" style="margin:0 0 22px;font-size:14px;color:#111a24;">
-              <tr><td style="padding:4px 16px 4px 0;color:#667085;">Username</td><td style="font-weight:700;">{H(username)}</td></tr>
-              <tr><td style="padding:4px 16px 4px 0;color:#667085;">Company</td><td style="font-weight:700;">{H(companyName)}</td></tr>
-              <tr><td style="padding:4px 16px 4px 0;color:#667085;">Link expires</td><td style="font-weight:700;">{expiresAt:dd MMM yyyy HH:mm} UTC</td></tr>
+              <tr><td style="padding:4px 16px 4px 0;color:#667085;">Korisničko ime</td><td style="font-weight:700;">{H(username)}</td></tr>
+              <tr><td style="padding:4px 16px 4px 0;color:#667085;">Firma</td><td style="font-weight:700;">{H(companyName)}</td></tr>
+              <tr><td style="padding:4px 16px 4px 0;color:#667085;">Link istječe</td><td style="font-weight:700;">{expiresAt:dd MMM yyyy HH:mm} UTC</td></tr>
             </table>
             <a href="{H(inviteLink)}" style="display:inline-block;background:#111a24;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 22px;border-radius:8px;">
-              Set my password
+              Postavi moju lozinku
             </a>
             <p style="margin:24px 0 0;font-size:12px;line-height:1.6;color:#98a2b3;">
-              If the button does not work, copy this link into your browser:<br>
+              Ako dugme ne radi, kopirajte ovaj link u preglednik:<br>
               <a href="{H(inviteLink)}" style="color:#e8590c;word-break:break-all;">{H(inviteLink)}</a>
             </p>
             <p style="margin:18px 0 0;font-size:12px;color:#98a2b3;">
-              You received this email because {H(companyName)} uses LogistiTrack for transport operations.
+              Primili ste ovaj email jer {H(companyName)} koristi LogistiTrack za transportne operacije.
             </p>
             """);
         return await SendAsync(to, subject, html);
@@ -89,15 +89,15 @@ public class EmailService
     public async Task<(bool Sent, string? Error)> SendPasswordResetAsync(
         string to, string driverName, string companyName, string username, string link, DateTime expiresAt)
     {
-        var subject = $"Reset your LogistiTrack password · {companyName}";
+        var subject = $"Resetujte LogistiTrack lozinku · {companyName}";
         var html = Template($"""
-            <h1 style="margin:0 0 12px;font-size:24px;line-height:1.25;color:#111a24;">Set a new password</h1>
+            <h1 style="margin:0 0 12px;font-size:24px;line-height:1.25;color:#111a24;">Postavite novu lozinku</h1>
             <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#475467;">
-              Hi {H(driverName)}, {H(companyName)} requested a new password for your LogistiTrack driver account
-              (<strong>{H(username)}</strong>). The link is valid until {expiresAt:dd MMM yyyy HH:mm} UTC.
+              Zdravo {H(driverName)}, {H(companyName)} je zatražila novu lozinku za vaš LogistiTrack vozački račun
+              (<strong>{H(username)}</strong>). Link vrijedi do {expiresAt:dd MMM yyyy HH:mm} UTC.
             </p>
             <a href="{H(link)}" style="display:inline-block;background:#111a24;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 22px;border-radius:8px;">
-              Choose a new password
+              Odaberite novu lozinku
             </a>
             <p style="margin:24px 0 0;font-size:12px;color:#98a2b3;word-break:break-all;">{H(link)}</p>
             """);
@@ -108,10 +108,10 @@ public class EmailService
     {
         var appName = _cfg["App:Name"] ?? "LogistiTrack";
         var html = Template($"""
-            <h1 style="margin:0 0 12px;font-size:24px;color:#111a24;">{H(appName)} email is working</h1>
+            <h1 style="margin:0 0 12px;font-size:24px;color:#111a24;">{H(appName)} email radi</h1>
             <p style="margin:0;font-size:15px;line-height:1.6;color:#475467;">
-              This is a test message from your LogistiTrack platform. Driver invitations and password links
-              will use this sender identity.
+              Ovo je testna poruka sa vaše LogistiTrack platforme. Pozivnice vozačima i linkovi za lozinku
+              koristit će ovaj identitet pošiljaoca.
             </p>
             """);
         return await SendAsync(to, $"{appName} · SMTP test", html);
@@ -129,14 +129,14 @@ public class EmailService
                 Logisti<span style="color:#f08c4a;">Track</span>
               </div>
               <div style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#98a2b3;margin-top:4px;">
-                Transport operations
+                Transportne operacije
               </div>
             </div>
             <div style="padding:30px 28px 34px;">
               {{content}}
             </div>
             <div style="border-top:1px solid #e4e6e3;padding:16px 28px;font-size:11px;color:#98a2b3;">
-              Sent by LogistiTrack on behalf of {{H(_cfg["App:Name"] ?? "your transport company")}}.
+              Poslao LogistiTrack u ime {{H(_cfg["App:Name"] ?? "vaše transportne firme")}}.
             </div>
           </div>
         </div>
